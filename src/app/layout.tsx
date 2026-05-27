@@ -20,7 +20,8 @@ const dancingScript = Dancing_Script({
   subsets: ["latin"],
 });
 
-const siteUrl = "https://seanprashad.com/leetcode-patterns";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://seanprashad.com/leetcode-patterns";
+const siteOrigin = new URL(siteUrl).origin;
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 export const metadata: Metadata = {
@@ -28,8 +29,8 @@ export const metadata: Metadata = {
   description:
     "A curated list of LeetCode questions grouped by pattern to help you ace coding interviews. Filter by difficulty, company, and topic.",
   manifest: `${basePath}/manifest.json`,
-  metadataBase: new URL(siteUrl),
-  alternates: { canonical: "/" },
+  metadataBase: new URL(siteOrigin),
+  alternates: { canonical: siteUrl },
   openGraph: {
     title: "Leetcode Patterns",
     description:
