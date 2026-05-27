@@ -19,6 +19,8 @@ export interface ProgressPayload {
 
 // Upload current localStorage state to Supabase
 export async function uploadProgress(userId: string): Promise<void> {
+  if (!supabase) return;
+
   const payload = {
     user_id: userId,
     completed: [...loadCompleted()],
@@ -34,6 +36,8 @@ export async function uploadProgress(userId: string): Promise<void> {
 
 // Download remote progress and replace local state with it
 export async function downloadAndMerge(userId: string): Promise<boolean> {
+  if (!supabase) return false;
+
   const { data, error } = await supabase
     .from("user_progress")
     .select("*")

@@ -5,6 +5,7 @@ import {
   ChevronDown,
   ChevronRight,
   ExternalLink,
+  BookOpen,
   NotebookPen,
   Check,
   Star,
@@ -17,6 +18,7 @@ import FormattedNote from "@/components/questions/FormattedNote";
 import { loadCompleted, saveCompleted, loadStarred, saveStarred, loadNotes, saveNotes, loadSolvedDates, saveSolvedDates, loadReminders, saveReminders, MAX_NOTE_LENGTH } from "@/lib/storage";
 import { useAuth } from "@/components/layout/AuthContext";
 import { type Reminder, initReminder } from "@/lib/reminders";
+import StudyModal from "@/components/questions/StudyModal";
 
 function InlineMarkdown({ text }: { text: string }) {
   const lines = text.split("\n");
@@ -82,6 +84,7 @@ export default function RoadmapView({ roadmap, questions }: Props) {
     draft: string;
     confirmDiscard: boolean;
   } | null>(null);
+  const [studyQuestion, setStudyQuestion] = useState<Question | null>(null);
 
   useEffect(() => {
     setCompleted(loadCompleted());
@@ -184,6 +187,10 @@ export default function RoadmapView({ roadmap, questions }: Props) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
+      if (studyQuestion) {
+        setStudyQuestion(null);
+        return;
+      }
       if (editingNote) {
         const saved = notes[editingNote.id] ?? "";
         if (editingNote.draft !== saved) {
@@ -195,7 +202,7 @@ export default function RoadmapView({ roadmap, questions }: Props) {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [editingNote, notes]);
+  }, [editingNote, notes, studyQuestion]);
 
   // Compute stats
   const stats = useMemo(() => {
@@ -402,6 +409,16 @@ export default function RoadmapView({ roadmap, questions }: Props) {
           )}
         </div>
         <div className="flex shrink-0 items-center gap-1">
+          <button
+            onClick={() => {
+              setStudyQuestion(q);
+              trackEvent("open_study_guide", { question_id: q.id, pattern: q.pattern[0] ?? "unknown" });
+            }}
+            className="rounded p-1 text-zinc-400 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:text-zinc-500 dark:hover:bg-blue-950/30 dark:hover:text-blue-300"
+            title="Study pattern"
+          >
+            <BookOpen className="h-4 w-4" />
+          </button>
           <button
             onClick={() => toggleStarred(q.id)}
             className="rounded p-1 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -877,6 +894,13 @@ export default function RoadmapView({ roadmap, questions }: Props) {
             </div>
           );
         })()}
+
+      {studyQuestion && (
+        <StudyModal
+          question={studyQuestion}
+          onClose={() => setStudyQuestion(null)}
+        />
+      )}
     </div>
   );
 }

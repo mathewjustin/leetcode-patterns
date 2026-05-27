@@ -13,7 +13,7 @@ import {
   type ColumnFiltersState,
 } from "@tanstack/react-table";
 import { Question } from "@/types/question";
-import { ExternalLink, Star, Check } from "lucide-react";
+import { BookOpen, ExternalLink, Star, Check } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import FormattedNote from "@/components/questions/FormattedNote";
 import { loadCompleted, saveCompleted, loadStarred, saveStarred, loadNotes, saveNotes, loadSolvedDates, saveSolvedDates, loadShuffleOrder, saveShuffleOrder, migrateLegacyProgress, loadReminders, saveReminders } from "@/lib/storage";
@@ -26,6 +26,7 @@ import ConfirmModal from "./ConfirmModal";
 import GroupHeaderRow from "./GroupHeaderRow";
 import QuestionRow from "./QuestionRow";
 import ReviewDateModal, { type ReviewDateTarget } from "./ReviewDateModal";
+import StudyModal from "./StudyModal";
 
 const columnHelper = createColumnHelper<Question>();
 
@@ -54,7 +55,8 @@ const makeColumns = (
   solvedDates: Record<number, string>,
   reminders: Record<number, Reminder>,
   openReviewModal: (id: number, title: string) => void,
-  completeReminder: (id: number) => void
+  completeReminder: (id: number) => void,
+  openStudyModal: (question: Question) => void
 ) => [
   columnHelper.display({
     id: "completed",
@@ -108,6 +110,24 @@ const makeColumns = (
         )}
       </a>
     ),
+  }),
+  columnHelper.display({
+    id: "study",
+    header: "Study",
+    size: 64,
+    cell: (info) => (
+      <button
+        type="button"
+        onClick={() => openStudyModal(info.row.original)}
+        className="inline-flex items-center gap-1 rounded-md border border-blue-200 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50 dark:border-blue-900 dark:text-blue-300 dark:hover:bg-blue-950/40"
+        aria-label={`Open study guide for ${info.row.original.title}`}
+      >
+        <BookOpen className="h-3.5 w-3.5" />
+        <span className="hidden lg:inline">Study</span>
+      </button>
+    ),
+    enableSorting: false,
+    meta: { noStrikethrough: true },
   }),
   columnHelper.display({
     id: "solutions",
@@ -514,9 +534,15 @@ export default function QuestionsTable({ data, updatedDate }: { data: Question[]
   }, [syncNow]);
 
   const [reviewTarget, setReviewTarget] = useState<ReviewDateTarget | null>(null);
+  const [studyQuestion, setStudyQuestion] = useState<Question | null>(null);
 
   const openReviewModal = useCallback((id: number, title: string) => {
     setReviewTarget({ id, title });
+  }, []);
+
+  const openStudyModal = useCallback((question: Question) => {
+    setStudyQuestion(question);
+    trackEvent("open_study_guide", { question_id: question.id, pattern: question.pattern[0] ?? "unknown" });
   }, []);
 
   const onReviewDateChange = useCallback((id: number, date: string) => {
@@ -617,8 +643,8 @@ export default function QuestionsTable({ data, updatedDate }: { data: Question[]
   );
 
   const columns = useMemo(
-    () => makeColumns(completed, toggleCompleted, starred, toggleStarred, notes, openNoteModal, hidePatterns, activeCompanyFilter, updatedDate, solvedDates, reminders, openReviewModal, onReviewDateClear),
-    [completed, toggleCompleted, starred, toggleStarred, notes, openNoteModal, hidePatterns, activeCompanyFilter, updatedDate, solvedDates, reminders, openReviewModal, onReviewDateClear]
+    () => makeColumns(completed, toggleCompleted, starred, toggleStarred, notes, openNoteModal, hidePatterns, activeCompanyFilter, updatedDate, solvedDates, reminders, openReviewModal, onReviewDateClear, openStudyModal),
+    [completed, toggleCompleted, starred, toggleStarred, notes, openNoteModal, hidePatterns, activeCompanyFilter, updatedDate, solvedDates, reminders, openReviewModal, onReviewDateClear, openStudyModal]
   );
 
   useEffect(() => {
@@ -855,6 +881,7 @@ export default function QuestionsTable({ data, updatedDate }: { data: Question[]
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        if (studyQuestion) { setStudyQuestion(null); return; }
         if (reviewTarget) { setReviewTarget(null); return; }
         if (clearConfirm) { setClearConfirm(null); return; }
         if (resetConfirmGroup) { setResetConfirmGroup(null); return; }
@@ -879,7 +906,7 @@ export default function QuestionsTable({ data, updatedDate }: { data: Question[]
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [pickRandom, editingNote, notes, clearConfirm, resetConfirmGroup, reviewTarget]);
+  }, [pickRandom, editingNote, notes, clearConfirm, resetConfirmGroup, reviewTarget, studyQuestion]);
 
   // Track filter changes
   const activeDifficultyFilter = useMemo(
@@ -1102,6 +1129,13 @@ export default function QuestionsTable({ data, updatedDate }: { data: Question[]
           onSelect={onReviewDateChange}
           onClear={reminders[reviewTarget.id] ? onReviewDateClear : undefined}
           onCancel={() => setReviewTarget(null)}
+        />
+      )}
+
+      {studyQuestion && (
+        <StudyModal
+          question={studyQuestion}
+          onClose={() => setStudyQuestion(null)}
         />
       )}
 

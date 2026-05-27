@@ -26,11 +26,11 @@ const AuthContext = createContext<AuthContextValue>({
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(supabase));
   const [syncVersion, setSyncVersion] = useState(0);
   const [toast, setToast] = useState<{ message: string; type: "error" | "success" } | null>(null);
   const [toastFading, setToastFading] = useState(false);
-  const realtimeChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const realtimeChannelRef = useRef<ReturnType<NonNullable<typeof supabase>["channel"]> | null>(null);
   const hasSessionRef = useRef(false);
 
   useEffect(() => {
@@ -42,16 +42,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Subscribe to realtime changes when user is signed in
   useEffect(() => {
+    if (!supabase) return;
+    const client = supabase;
+
     if (!user) {
       // Clean up any existing subscription
       if (realtimeChannelRef.current) {
-        supabase.removeChannel(realtimeChannelRef.current);
+        client.removeChannel(realtimeChannelRef.current);
         realtimeChannelRef.current = null;
       }
       return;
     }
 
-    const channel = supabase
+    const channel = client
       .channel("user_progress_sync")
       .on(
         "postgres_changes",
@@ -74,12 +77,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     realtimeChannelRef.current = channel;
 
     return () => {
-      supabase.removeChannel(channel);
+      client.removeChannel(channel);
       realtimeChannelRef.current = null;
     };
   }, [user]);
 
   useEffect(() => {
+    if (!supabase) return;
+
     // Next.js App Router clears the URL hash during hydration before
     // Supabase can detect it. We capture it early in an inline <script>
     // and fall back to setSession if auto-detection missed it.
@@ -151,6 +156,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = useCallback(async () => {
+    if (!supabase) {
+      setToast({ message: "Cloud sync is not configured. Local progress still works.", type: "error" });
+      return;
+    }
+
     const redirectTo = typeof window !== "undefined"
       ? window.location.origin + window.location.pathname.replace(/\/?$/, "/")
       : undefined;
@@ -165,6 +175,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    if (!supabase) return;
+
     const { error } = await supabase.auth.signOut();
     if (error) {
       setToast({ message: `Sign out failed: ${error.message}`, type: "error" });
