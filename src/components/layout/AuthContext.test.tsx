@@ -64,9 +64,7 @@ function TestConsumer() {
 describe("AuthProvider Google Drive sync", () => {
   beforeEach(() => {
     mockIsConfigured.mockReturnValue(true);
-    mockRequestGoogleAccessToken.mockImplementation((prompt: string) =>
-      prompt === "" ? Promise.reject(new Error("no silent session")) : Promise.resolve("access-token"),
-    );
+    mockRequestGoogleAccessToken.mockResolvedValue("access-token");
     mockFetchGoogleProfile.mockResolvedValue(fakeProfile);
     mockDownloadAndMerge.mockResolvedValue(false);
     mockRevokeGoogleAccessToken.mockResolvedValue(undefined);
@@ -104,9 +102,8 @@ describe("AuthProvider Google Drive sync", () => {
     expect(screen.getByText(/Signed in as Test User/)).toBeInTheDocument();
   });
 
-  it("restores a silent Google session without showing a sign-in toast", async () => {
-    mockRequestGoogleAccessToken.mockResolvedValue("silent-token");
-    mockDownloadAndMerge.mockResolvedValue(true);
+  it("does not request Google access before a user clicks sign in", async () => {
+    const user = userEvent.setup();
 
     await act(async () => {
       render(
@@ -116,9 +113,13 @@ describe("AuthProvider Google Drive sync", () => {
       );
     });
 
+    expect(screen.getByText("signed-out")).toBeInTheDocument();
+    expect(mockRequestGoogleAccessToken).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "sign-in" }));
+
     expect(await screen.findByText("signed-in:Test User")).toBeInTheDocument();
-    expect(screen.queryByText(/Signed in as/)).not.toBeInTheDocument();
-    expect(mockTrackEvent).toHaveBeenCalledWith("google_drive_sync_restore");
+    expect(mockRequestGoogleAccessToken).toHaveBeenCalledWith("consent");
   });
 
   it("shows a local-only toast when Google sync is not configured", async () => {

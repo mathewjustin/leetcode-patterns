@@ -30,7 +30,7 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue>({
   user: null,
-  loading: true,
+  loading: false,
   signIn: async () => {},
   signOut: async () => {},
   syncNow: () => {},
@@ -39,7 +39,7 @@ const AuthContext = createContext<AuthContextValue>({
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
-  const [loading, setLoading] = useState(isGoogleDriveSyncConfigured());
+  const [loading, setLoading] = useState(false);
   const [syncVersion, setSyncVersion] = useState(0);
   const [toast, setToast] = useState<{ message: string; type: "error" | "success" } | null>(null);
   const [toastFading, setToastFading] = useState(false);
@@ -78,21 +78,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     hasSessionRef.current = true;
   }, []);
-
-  useEffect(() => {
-    if (!isGoogleDriveSyncConfigured()) return;
-
-    let cancelled = false;
-    requestGoogleAccessToken("")
-      .then((accessToken) => completeGoogleSignIn(accessToken, { silent: true, cancelled }))
-      .catch(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [completeGoogleSignIn]);
 
   useEffect(() => {
     const flush = () => flushPendingUpload();
