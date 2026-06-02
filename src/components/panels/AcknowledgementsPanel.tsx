@@ -67,6 +67,39 @@ export default function AcknowledgementsPanel() {
           </button>
         </div>
         <div className="h-[calc(100%-49px)] overflow-y-auto px-4 py-4">
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
+            <p className="font-semibold">Fork attribution</p>
+            <p className="mt-1">
+              This modified fork is maintained by{" "}
+              <a
+                href="https://github.com/mathewjustin/leetcode-patterns"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline decoration-dotted underline-offset-2"
+              >
+                Justin Mathew
+              </a>
+              {" "}and is adapted from{" "}
+              <a
+                href="https://github.com/SeanPrashad/leetcode-patterns"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline decoration-dotted underline-offset-2"
+              >
+                Sean Prashad&apos;s Leetcode Patterns
+              </a>
+              . Licensed under{" "}
+              <a
+                href="https://creativecommons.org/licenses/by-nc/4.0/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline decoration-dotted underline-offset-2"
+              >
+                CC BY-NC 4.0
+              </a>
+              .
+            </p>
+          </div>
           <p className="mb-4 text-xs text-zinc-500">
             Leetcode Patterns wouldn&apos;t exist without the following resources:
           </p>

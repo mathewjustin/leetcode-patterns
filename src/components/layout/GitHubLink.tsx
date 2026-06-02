@@ -1,4 +1,4 @@
-const REPO = "SeanPrashad/leetcode-patterns";
+const REPO = "mathewjustin/leetcode-patterns";
 
 async function getStarCount(): Promise<number | null> {
   try {
@@ -26,7 +26,7 @@ export default async function GitHubLink() {
       href={`https://github.com/${REPO}`}
       target="_blank"
       rel="noopener noreferrer"
-      title="Star on GitHub"
+      title="View Justin's fork on GitHub"
       className="flex items-center gap-1.5 rounded-lg border border-zinc-300 py-2 pl-2 pr-2.5 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
     >
       <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
@@ -34,7 +34,7 @@ export default async function GitHubLink() {
       </svg>
       {stars !== null && (
         <span className="hidden text-xs font-medium text-zinc-600 sm:inline dark:text-zinc-400">
-          ⭐ {formatCount(stars)}
+          Fork · ⭐ {formatCount(stars)}
         </span>
       )}
     </a>

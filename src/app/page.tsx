@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { MessageSquarePlus } from "lucide-react";
+import { ExternalLink, GitFork, MessageSquarePlus } from "lucide-react";
 import ThemeToggle from "@/components/layout/ThemeToggle";
 import GitHubLink from "@/components/layout/GitHubLink";
 import UserMenu from "@/components/layout/UserMenu";
@@ -41,7 +41,7 @@ export default function Home() {
           <GitHubLink />
           <span className="group/fb relative">
             <a
-              href="https://github.com/SeanPrashad/leetcode-patterns/issues/new/choose"
+              href="https://github.com/mathewjustin/leetcode-patterns/issues/new/choose"
               target="_blank"
               rel="noopener noreferrer"
               className="block rounded-lg border border-zinc-300 p-2 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
@@ -68,6 +68,52 @@ export default function Home() {
           updatedDate={questionsJson.updated}
         />
       </Suspense>
+      <CreditFooter />
     </div>
+  );
+}
+
+function CreditFooter() {
+  return (
+    <footer className="mt-8 border-t border-zinc-200 pt-5 text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+      <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/60 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="font-medium text-zinc-700 dark:text-zinc-200">
+            Adapted from{" "}
+            <a
+              href="https://github.com/SeanPrashad/leetcode-patterns"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline dark:text-blue-400"
+            >
+              Sean Prashad&apos;s Leetcode Patterns
+            </a>
+            .
+          </p>
+          <p className="mt-1 text-xs leading-5">
+            Licensed under{" "}
+            <a
+              href="https://creativecommons.org/licenses/by-nc/4.0/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline decoration-dotted underline-offset-2 hover:text-zinc-700 dark:hover:text-zinc-200"
+            >
+              CC BY-NC 4.0
+            </a>
+            . Changes include local study guides, debug drills, offline-first progress, and blog integration.
+          </p>
+        </div>
+        <a
+          href="https://github.com/mathewjustin/leetcode-patterns"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-semibold text-blue-700 shadow-sm transition-colors hover:bg-blue-50 dark:border-blue-900 dark:bg-zinc-950 dark:text-blue-300 dark:hover:bg-blue-950/40"
+        >
+          <GitFork className="h-4 w-4" />
+          Justin&apos;s modified fork
+          <ExternalLink className="h-3.5 w-3.5" />
+        </a>
+      </div>
+    </footer>
   );
 }

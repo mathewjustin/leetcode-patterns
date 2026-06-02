@@ -14,6 +14,7 @@
 ## Table of Contents
 
 - [Background](#background)
+- [Fork & Attribution](#fork--attribution)
 - [Fundamentals](#fundamentals)
 - [Notes](#notes)
 - [Question List](#question-list)
@@ -31,6 +32,19 @@ Problems are grouped under their respective subtopic, in order to focus on
 repeatedly applying common patterns rather than randomly tackling questions.
 
 All questions are available on [leetcode.com] with some requiring [leetcode premium].
+
+## Fork & Attribution
+
+This repository is a fork/adaptation of [Sean Prashad's Leetcode Patterns][original-repo].
+The original project and question list are credited to Sean Prashad.
+
+This fork is maintained by [Justin Mathew][justin] at [mathewjustin/leetcode-patterns][this-fork]
+and includes modifications such as a local pattern study UI, debug drills, offline/local-first
+progress support, and integration with Justin's blog at [justinmathew.com/leetcode-patterns][blog-app].
+
+The original work is licensed under the [Creative Commons Attribution-NonCommercial 4.0 International License][cc-by-nc].
+This fork preserves that attribution and indicates that changes have been made. This project is
+intended for non-commercial interview preparation and study use.
 
 ## Fundamentals
 
@@ -63,8 +77,11 @@ Other useful methods to know include [`substring()`](https://docs.oracle.com/jav
 
 ## Question List
 
-The entire question list can be found here:
+The original question list can be found here:
 https://seanprashad.com/leetcode-patterns/.
+
+This fork is published here:
+https://justinmathew.com/leetcode-patterns/.
 
 ## Solutions
 
@@ -85,6 +102,8 @@ A [Husky] `pre-push` hook runs `npm test` automatically before every push. This 
 
 ## Acknowledgements
 
+Original project: [Sean Prashad's Leetcode Patterns][original-repo].
+
 This list is heavily inspired from [Grokking the Coding Interview] with
 additional problems extracted from the [Blind 75 list] and this hackernoon article
 on [14 patterns to ace any coding interview question].
@@ -102,6 +121,11 @@ on [14 patterns to ace any coding interview question].
 [husky]: https://typicode.github.io/husky
 [this pdf]: https://drive.google.com/open?id=1ao4ZA28zzBttDkuS6MLQI52gDs_CJZEm
 [solutions]: https://github.com/SeanPrashad/leetcode-patterns/tree/solutions
+[original-repo]: https://github.com/SeanPrashad/leetcode-patterns
+[this-fork]: https://github.com/mathewjustin/leetcode-patterns
+[justin]: https://github.com/mathewjustin
+[blog-app]: https://justinmathew.com/leetcode-patterns/
+[cc-by-nc]: https://creativecommons.org/licenses/by-nc/4.0/
 [grokking the coding interview]: https://www.educative.io/courses/grokking-the-coding-interview
 [issue]: https://github.com/SeanPrashad/leetcode-patterns/issues/new
 [blind 75 list]: https://www.teamblind.com/article/New-Year-Gift---Curated-List-of-Top-100-LeetCode-Questions-to-Save-Your-Time-OaM1orEU?utm_source=share&utm_medium=ios_app
