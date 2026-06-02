@@ -18,6 +18,7 @@
 - [Fundamentals](#fundamentals)
 - [Notes](#notes)
 - [Question List](#question-list)
+- [Google Drive Progress Sync](#google-drive-progress-sync)
 - [Solutions](#solutions)
 - [Contributing](#contributing)
 - [Suggestions](#suggestions)
@@ -82,6 +83,49 @@ https://seanprashad.com/leetcode-patterns/.
 
 This fork is published here:
 https://justinmathew.com/leetcode-patterns/.
+
+## Google Drive Progress Sync
+
+Study progress is local-first. Completed questions, stars, notes, solved dates,
+and reminders are stored in `localStorage` and can optionally sync to a user's
+Google Drive.
+
+The sync layer uses the Google Drive `appDataFolder` scope, which creates a hidden
+JSON file named `justin-leetcode-patterns-store.v1.json` that only this app can
+read or write. The document is versioned and organized by namespace:
+
+```json
+{
+  "version": 1,
+  "app": {
+    "id": "leetcode-patterns",
+    "name": "LeetCode Patterns",
+    "updated_at": "2026-06-02T00:00:00.000Z"
+  },
+  "namespaces": {
+    "progress": {
+      "version": 1,
+      "updated_at": "2026-06-02T00:00:00.000Z",
+      "data": {
+        "completed": [],
+        "starred": [],
+        "notes": {},
+        "solved_dates": {},
+        "reminders": {}
+      }
+    }
+  }
+}
+```
+
+New data types should be added as new namespaces, for example `debug_drills`,
+`interview_sessions`, `settings`, or `spaced_repetition`, instead of mixing them
+into the `progress` payload.
+
+To enable sync, create a Google OAuth web client and set
+`NEXT_PUBLIC_GOOGLE_CLIENT_ID` for the deployment. The mounted blog build also
+needs this value because it rebuilds this app before publishing
+`/leetcode-patterns/`.
 
 ## Solutions
 

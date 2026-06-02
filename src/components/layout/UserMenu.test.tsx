@@ -10,10 +10,6 @@ vi.mock("@/components/layout/AuthContext", () => ({
   useAuth: () => mockUseAuth.current,
 }));
 
-vi.mock("@/lib/supabase", () => ({
-  supabase: {},
-}));
-
 import UserMenu from "@/components/layout/UserMenu";
 
 describe("UserMenu", () => {
@@ -39,15 +35,15 @@ describe("UserMenu", () => {
     expect(container.innerHTML).toBe("");
   });
 
-  it("renders Sign in with GitHub button when no user", () => {
+  it("renders Sign in with Google button when no user", () => {
     render(<UserMenu />);
-    expect(screen.getByRole("button", { name: "Sign in with GitHub" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sign in with Google" })).toBeInTheDocument();
   });
 
   it("renders user avatar when signed in", () => {
     mockUseAuth.current = {
       ...mockUseAuth.current,
-      user: { user_metadata: { avatar_url: "https://example.com/avatar.png", user_name: "testuser" } } as never,
+      user: { avatarUrl: "https://example.com/avatar.png", name: "testuser" } as never,
     };
     render(<UserMenu />);
     const avatar = screen.getByAltText("testuser");
@@ -58,20 +54,21 @@ describe("UserMenu", () => {
   it("shows dropdown with Signed in as and username when avatar clicked", async () => {
     mockUseAuth.current = {
       ...mockUseAuth.current,
-      user: { user_metadata: { avatar_url: "https://example.com/avatar.png", user_name: "testuser" } } as never,
+      user: { avatarUrl: "https://example.com/avatar.png", name: "testuser", email: "test@example.com" } as never,
     };
     const user = userEvent.setup();
     render(<UserMenu />);
     await user.click(screen.getByAltText("testuser"));
     expect(screen.getByText("Signed in as")).toBeInTheDocument();
     expect(screen.getByText("testuser")).toBeInTheDocument();
+    expect(screen.getByText("test@example.com")).toBeInTheDocument();
   });
 
   it("calls signOut when Sign out is clicked", async () => {
     const mockSignOut = vi.fn();
     mockUseAuth.current = {
       ...mockUseAuth.current,
-      user: { user_metadata: { avatar_url: "https://example.com/avatar.png", user_name: "testuser" } } as never,
+      user: { avatarUrl: "https://example.com/avatar.png", name: "testuser" } as never,
       signOut: mockSignOut,
     };
     const user = userEvent.setup();
@@ -84,7 +81,7 @@ describe("UserMenu", () => {
   it("closes dropdown when clicking outside", async () => {
     mockUseAuth.current = {
       ...mockUseAuth.current,
-      user: { user_metadata: { avatar_url: "https://example.com/avatar.png", user_name: "testuser" } } as never,
+      user: { avatarUrl: "https://example.com/avatar.png", name: "testuser" } as never,
     };
     const user = userEvent.setup();
     render(<UserMenu />);

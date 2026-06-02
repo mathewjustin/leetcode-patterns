@@ -1,13 +1,26 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from "react";
-import { supabase } from "@/lib/supabase";
-import { downloadAndMerge, scheduleUpload, flushPendingUpload, mergeFromRealtimePayload } from "@/lib/sync";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  fetchGoogleProfile,
+  isGoogleDriveSyncConfigured,
+  requestGoogleAccessToken,
+  revokeGoogleAccessToken,
+  type GoogleProfile,
+} from "@/lib/google-identity";
+import { configureGoogleDriveSync, downloadAndMerge, flushPendingUpload, scheduleUpload } from "@/lib/sync";
 import { trackEvent } from "@/lib/analytics";
-import type { User } from "@supabase/supabase-js";
+
+export interface AppUser {
+  id: string;
+  provider: "google";
+  name: string;
+  email?: string;
+  avatarUrl?: string;
+}
 
 interface AuthContextValue {
-  user: User | null;
+  user: AppUser | null;
   loading: boolean;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -25,12 +38,12 @@ const AuthContext = createContext<AuthContextValue>({
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(Boolean(supabase));
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [loading, setLoading] = useState(isGoogleDriveSyncConfigured());
   const [syncVersion, setSyncVersion] = useState(0);
   const [toast, setToast] = useState<{ message: string; type: "error" | "success" } | null>(null);
   const [toastFading, setToastFading] = useState(false);
-  const realtimeChannelRef = useRef<ReturnType<NonNullable<typeof supabase>["channel"]> | null>(null);
+  const accessTokenRef = useRef<string | null>(null);
   const hasSessionRef = useRef(false);
 
   useEffect(() => {
@@ -40,110 +53,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => { clearTimeout(fadeTimer); clearTimeout(removeTimer); };
   }, [toast]);
 
-  // Subscribe to realtime changes when user is signed in
-  useEffect(() => {
-    if (!supabase) return;
-    const client = supabase;
+  const completeGoogleSignIn = useCallback(async (
+    accessToken: string,
+    options: { silent?: boolean; cancelled?: boolean } = {},
+  ) => {
+    accessTokenRef.current = accessToken;
+    configureGoogleDriveSync(accessToken);
 
-    if (!user) {
-      // Clean up any existing subscription
-      if (realtimeChannelRef.current) {
-        client.removeChannel(realtimeChannelRef.current);
-        realtimeChannelRef.current = null;
-      }
-      return;
+    const profile = await fetchGoogleProfile(accessToken);
+    if (options.cancelled) return;
+
+    const nextUser = mapGoogleProfile(profile);
+    setUser(nextUser);
+    setLoading(false);
+
+    const changed = await downloadAndMerge();
+    setSyncVersion((v) => v + 1);
+
+    if (!options.silent && !hasSessionRef.current) {
+      trackEvent("sign_in", { provider: "google" });
+      setToast({ message: `Signed in as ${nextUser.name}`, type: "success" });
+    } else if (options.silent && changed) {
+      trackEvent("google_drive_sync_restore");
     }
-
-    const channel = client
-      .channel("user_progress_sync")
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "user_progress",
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          const changed = mergeFromRealtimePayload(payload.new);
-          if (changed) {
-            trackEvent("realtime_sync");
-            setSyncVersion((v) => v + 1);
-          }
-        }
-      )
-      .subscribe();
-
-    realtimeChannelRef.current = channel;
-
-    return () => {
-      client.removeChannel(channel);
-      realtimeChannelRef.current = null;
-    };
-  }, [user]);
-
-  useEffect(() => {
-    if (!supabase) return;
-
-    // Next.js App Router clears the URL hash during hydration before
-    // Supabase can detect it. We capture it early in an inline <script>
-    // and fall back to setSession if auto-detection missed it.
-    const savedHash = (window as Record<string, unknown>).__SUPABASE_AUTH_HASH__ as string | undefined;
-    if (savedHash) {
-      delete (window as Record<string, unknown>).__SUPABASE_AUTH_HASH__;
-      const params = new URLSearchParams(savedHash.substring(1));
-      const accessToken = params.get("access_token");
-      const refreshToken = params.get("refresh_token");
-      if (accessToken && refreshToken) {
-        supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken }).then(({ error }) => {
-          if (error) {
-            setToast({ message: `Sign in failed: ${error.message}`, type: "error" });
-          }
-        });
-      }
-    }
-
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        setToast({ message: `Sign in failed: ${error.message}`, type: "error" });
-        setLoading(false);
-        return;
-      }
-      const u = session?.user ?? null;
-      setUser(u);
-      setLoading(false);
-      if (u) {
-        hasSessionRef.current = true;
-        downloadAndMerge(u.id).then(() => setSyncVersion((v) => v + 1));
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      const u = session?.user ?? null;
-      setUser(u);
-      if (u) downloadAndMerge(u.id).then(() => setSyncVersion((v) => v + 1));
-      if (event === "INITIAL_SESSION") {
-        // Supabase fires INITIAL_SESSION on load for existing sessions;
-        // mark it so the subsequent SIGNED_IN event doesn't show a toast.
-        if (u) hasSessionRef.current = true;
-      } else if (event === "SIGNED_IN") {
-        if (!hasSessionRef.current) {
-          trackEvent("sign_in", { provider: "github" });
-          setToast({ message: `Signed in as ${u?.user_metadata?.user_name ?? "user"}`, type: "success" });
-        }
-        hasSessionRef.current = true;
-      }
-      if (event === "SIGNED_OUT") {
-        hasSessionRef.current = false;
-        trackEvent("sign_out");
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    hasSessionRef.current = true;
   }, []);
 
-  // Flush any pending debounced upload before the page unloads so that
-  // a refresh always sees the latest state in Supabase.
+  useEffect(() => {
+    if (!isGoogleDriveSyncConfigured()) return;
+
+    let cancelled = false;
+    requestGoogleAccessToken("")
+      .then((accessToken) => completeGoogleSignIn(accessToken, { silent: true, cancelled }))
+      .catch(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [completeGoogleSignIn]);
+
   useEffect(() => {
     const flush = () => flushPendingUpload();
     const onVisChange = () => { if (document.visibilityState === "hidden") flush(); };
@@ -156,39 +106,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = useCallback(async () => {
-    if (!supabase) {
-      setToast({ message: "Cloud sync is not configured. Local progress still works.", type: "error" });
+    if (!isGoogleDriveSyncConfigured()) {
+      setToast({ message: "Google Drive sync is not configured. Local progress still works.", type: "error" });
       return;
     }
 
-    const redirectTo = typeof window !== "undefined"
-      ? window.location.origin + window.location.pathname.replace(/\/?$/, "/")
-      : undefined;
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "github",
-      options: { redirectTo, scopes: "" },
-    });
-    if (error) {
-      trackEvent("sign_in_error", { error: error.message });
-      setToast({ message: `Sign in failed: ${error.message}`, type: "error" });
+    try {
+      setLoading(true);
+      const accessToken = await requestGoogleAccessToken("consent");
+      await completeGoogleSignIn(accessToken);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Google sign-in failed.";
+      trackEvent("sign_in_error", { provider: "google", error: message });
+      setToast({ message, type: "error" });
+      setLoading(false);
     }
-  }, []);
+  }, [completeGoogleSignIn]);
 
   const signOut = useCallback(async () => {
-    if (!supabase) return;
-
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      setToast({ message: `Sign out failed: ${error.message}`, type: "error" });
-    } else {
-      setUser(null);
-      setToast({ message: "Signed out", type: "success" });
-    }
+    const accessToken = accessTokenRef.current;
+    accessTokenRef.current = null;
+    configureGoogleDriveSync(null);
+    setUser(null);
+    hasSessionRef.current = false;
+    if (accessToken) await revokeGoogleAccessToken(accessToken);
+    trackEvent("sign_out", { provider: "google" });
+    setToast({ message: "Signed out", type: "success" });
   }, []);
 
   const syncNow = useCallback(() => {
-    if (user) scheduleUpload(user.id);
-  }, [user]);
+    if (accessTokenRef.current) scheduleUpload();
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, loading, signIn, signOut, syncNow, syncVersion }}>
@@ -201,7 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               : "border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200"
           } ${toastFading ? "opacity-0" : "opacity-100"}`}
         >
-          {toast.type === "error" ? "✕" : "✓"} {toast.message}
+          {toast.type === "error" ? "x" : "✓"} {toast.message}
         </div>
       )}
     </AuthContext.Provider>
@@ -210,4 +158,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   return useContext(AuthContext);
+}
+
+function mapGoogleProfile(profile: GoogleProfile): AppUser {
+  return {
+    id: profile.id,
+    provider: "google",
+    name: profile.name,
+    email: profile.email,
+    avatarUrl: profile.avatarUrl,
+  };
 }

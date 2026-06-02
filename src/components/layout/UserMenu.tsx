@@ -27,7 +27,7 @@ export default function UserMenu() {
         onClick={signIn}
         className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
       >
-        Sign in with GitHub
+        Sign in with Google
       </button>
     );
   }
@@ -38,19 +38,30 @@ export default function UserMenu() {
         onClick={() => setOpen((prev) => !prev)}
         className="flex items-center gap-2 rounded-lg border border-zinc-300 p-1 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={user.user_metadata.avatar_url}
-          alt={user.user_metadata.user_name}
-          className="h-6 w-6 rounded-full"
-        />
+        {user.avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={user.avatarUrl}
+            alt={user.name}
+            className="h-6 w-6 rounded-full"
+          />
+        ) : (
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+            {user.name.slice(0, 1).toUpperCase()}
+          </span>
+        )}
       </button>
       {open && (
         <div className="absolute right-0 top-full z-10 mt-1.5 w-48 rounded-lg border border-zinc-200 bg-white p-2 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
           <p className="px-2 py-1 text-xs text-zinc-500">Signed in as</p>
           <p className="truncate px-2 pb-1 text-sm font-medium">
-            {user.user_metadata.user_name}
+            {user.name}
           </p>
+          {user.email && (
+            <p className="truncate px-2 pb-1 text-xs text-zinc-500">
+              {user.email}
+            </p>
+          )}
           <button
             onClick={() => { setOpen(false); signOut(); }}
             className="w-full rounded px-2 py-1 text-left text-sm text-red-600 hover:bg-zinc-100 dark:hover:bg-zinc-800"

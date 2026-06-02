@@ -1,38 +1,39 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, act } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
-type AuthCallback = (event: string, session: { user: Record<string, unknown> } | null) => void;
+const {
+  mockIsConfigured,
+  mockRequestGoogleAccessToken,
+  mockFetchGoogleProfile,
+  mockRevokeGoogleAccessToken,
+  mockConfigureGoogleDriveSync,
+  mockDownloadAndMerge,
+  mockScheduleUpload,
+  mockTrackEvent,
+} = vi.hoisted(() => ({
+  mockIsConfigured: vi.fn(() => true),
+  mockRequestGoogleAccessToken: vi.fn(),
+  mockFetchGoogleProfile: vi.fn(),
+  mockRevokeGoogleAccessToken: vi.fn(),
+  mockConfigureGoogleDriveSync: vi.fn(),
+  mockDownloadAndMerge: vi.fn(),
+  mockScheduleUpload: vi.fn(),
+  mockTrackEvent: vi.fn(),
+}));
 
-const { mockGetSession, mockOnAuthStateChange, mockTrackEvent, mockDownloadAndMerge, mockChannel } = vi.hoisted(() => {
-  const mockChannel = {
-    on: vi.fn().mockReturnThis(),
-    subscribe: vi.fn().mockReturnThis(),
-  };
-  return {
-    mockGetSession: vi.fn(),
-    mockOnAuthStateChange: vi.fn(),
-    mockTrackEvent: vi.fn(),
-    mockDownloadAndMerge: vi.fn(() => Promise.resolve()),
-    mockChannel,
-  };
-});
-
-vi.mock("@/lib/supabase", () => ({
-  supabase: {
-    auth: {
-      getSession: mockGetSession,
-      onAuthStateChange: mockOnAuthStateChange,
-      setSession: vi.fn().mockResolvedValue({ error: null }),
-    },
-    channel: () => mockChannel,
-    removeChannel: vi.fn(),
-  },
+vi.mock("@/lib/google-identity", () => ({
+  isGoogleDriveSyncConfigured: mockIsConfigured,
+  requestGoogleAccessToken: mockRequestGoogleAccessToken,
+  fetchGoogleProfile: mockFetchGoogleProfile,
+  revokeGoogleAccessToken: mockRevokeGoogleAccessToken,
 }));
 
 vi.mock("@/lib/sync", () => ({
+  configureGoogleDriveSync: mockConfigureGoogleDriveSync,
   downloadAndMerge: mockDownloadAndMerge,
-  scheduleUpload: vi.fn(),
-  mergeFromRealtimePayload: vi.fn(),
+  scheduleUpload: mockScheduleUpload,
+  flushPendingUpload: vi.fn(),
 }));
 
 vi.mock("@/lib/analytics", () => ({
@@ -41,27 +42,40 @@ vi.mock("@/lib/analytics", () => ({
 
 import { AuthProvider, useAuth } from "@/components/layout/AuthContext";
 
-const fakeUser = {
-  id: "user-1",
-  user_metadata: { user_name: "testuser", avatar_url: "https://example.com/avatar.png" },
+const fakeProfile = {
+  id: "google-user-1",
+  name: "Test User",
+  email: "test@example.com",
+  avatarUrl: "https://example.com/avatar.png",
 };
 
 function TestConsumer() {
-  const { user } = useAuth();
-  return <div>{user ? `signed-in:${(user as unknown as typeof fakeUser).user_metadata.user_name}` : "signed-out"}</div>;
+  const { user, signIn, signOut, syncNow } = useAuth();
+  return (
+    <div>
+      <p>{user ? `signed-in:${user.name}` : "signed-out"}</p>
+      <button onClick={signIn}>sign-in</button>
+      <button onClick={signOut}>sign-out</button>
+      <button onClick={syncNow}>sync-now</button>
+    </div>
+  );
 }
 
-describe("AuthProvider sign-in toast suppression", () => {
-  let authCallback: AuthCallback;
-  const unsubscribe = vi.fn();
-
+describe("AuthProvider Google Drive sync", () => {
   beforeEach(() => {
-    mockTrackEvent.mockClear();
+    mockIsConfigured.mockReturnValue(true);
+    mockRequestGoogleAccessToken.mockImplementation((prompt: string) =>
+      prompt === "" ? Promise.reject(new Error("no silent session")) : Promise.resolve("access-token"),
+    );
+    mockFetchGoogleProfile.mockResolvedValue(fakeProfile);
+    mockDownloadAndMerge.mockResolvedValue(false);
+    mockRevokeGoogleAccessToken.mockResolvedValue(undefined);
+    mockRequestGoogleAccessToken.mockClear();
+    mockFetchGoogleProfile.mockClear();
     mockDownloadAndMerge.mockClear();
-    mockOnAuthStateChange.mockImplementation((cb: AuthCallback) => {
-      authCallback = cb;
-      return { data: { subscription: { unsubscribe } } };
-    });
+    mockConfigureGoogleDriveSync.mockClear();
+    mockScheduleUpload.mockClear();
+    mockTrackEvent.mockClear();
   });
 
   afterEach(() => {
@@ -69,121 +83,100 @@ describe("AuthProvider sign-in toast suppression", () => {
     vi.restoreAllMocks();
   });
 
-  it("shows toast on fresh sign-in when no existing session", async () => {
-    mockGetSession.mockResolvedValue({ data: { session: null } });
+  it("signs in with Google and downloads Drive progress", async () => {
+    const user = userEvent.setup();
 
     await act(async () => {
       render(
         <AuthProvider>
           <TestConsumer />
-        </AuthProvider>
+        </AuthProvider>,
       );
     });
 
-    expect(screen.getByText("signed-out")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "sign-in" }));
 
-    await act(async () => {
-      authCallback("SIGNED_IN", { user: fakeUser });
-    });
-
-    expect(screen.getByText(/Signed in as testuser/)).toBeInTheDocument();
-    expect(mockTrackEvent).toHaveBeenCalledWith("sign_in", { provider: "github" });
+    expect(await screen.findByText("signed-in:Test User")).toBeInTheDocument();
+    expect(mockRequestGoogleAccessToken).toHaveBeenCalledWith("consent");
+    expect(mockConfigureGoogleDriveSync).toHaveBeenCalledWith("access-token");
+    expect(mockDownloadAndMerge).toHaveBeenCalledWith();
+    expect(mockTrackEvent).toHaveBeenCalledWith("sign_in", { provider: "google" });
+    expect(screen.getByText(/Signed in as Test User/)).toBeInTheDocument();
   });
 
-  it("does NOT show toast when session already exists and SIGNED_IN fires again", async () => {
-    mockGetSession.mockResolvedValue({ data: { session: { user: fakeUser } } });
+  it("restores a silent Google session without showing a sign-in toast", async () => {
+    mockRequestGoogleAccessToken.mockResolvedValue("silent-token");
+    mockDownloadAndMerge.mockResolvedValue(true);
 
     await act(async () => {
       render(
         <AuthProvider>
           <TestConsumer />
-        </AuthProvider>
+        </AuthProvider>,
       );
     });
 
-    expect(screen.getByText("signed-in:testuser")).toBeInTheDocument();
-    mockTrackEvent.mockClear();
-
-    await act(async () => {
-      authCallback("SIGNED_IN", { user: fakeUser });
-    });
-
+    expect(await screen.findByText("signed-in:Test User")).toBeInTheDocument();
     expect(screen.queryByText(/Signed in as/)).not.toBeInTheDocument();
-    expect(mockTrackEvent).not.toHaveBeenCalledWith("sign_in", expect.anything());
+    expect(mockTrackEvent).toHaveBeenCalledWith("google_drive_sync_restore");
   });
 
-  it("does NOT show toast when INITIAL_SESSION fires before getSession resolves", async () => {
-    // Simulate getSession that never resolves before INITIAL_SESSION fires
-    let resolveGetSession!: (v: { data: { session: { user: typeof fakeUser } } }) => void;
-    mockGetSession.mockReturnValue(new Promise((r) => { resolveGetSession = r; }));
+  it("shows a local-only toast when Google sync is not configured", async () => {
+    mockIsConfigured.mockReturnValue(false);
+    const user = userEvent.setup();
 
     await act(async () => {
       render(
         <AuthProvider>
           <TestConsumer />
-        </AuthProvider>
+        </AuthProvider>,
       );
     });
 
-    // Supabase fires INITIAL_SESSION before getSession resolves
-    await act(async () => {
-      authCallback("INITIAL_SESSION", { user: fakeUser });
-    });
+    await user.click(screen.getByRole("button", { name: "sign-in" }));
 
-    // Then SIGNED_IN fires (common Supabase behaviour on page load)
-    await act(async () => {
-      authCallback("SIGNED_IN", { user: fakeUser });
-    });
-
-    expect(screen.queryByText(/Signed in as/)).not.toBeInTheDocument();
-    expect(mockTrackEvent).not.toHaveBeenCalledWith("sign_in", expect.anything());
-
-    // Let getSession resolve to avoid dangling promise
-    await act(async () => {
-      resolveGetSession({ data: { session: { user: fakeUser } } });
-    });
+    expect(screen.getByText(/Google Drive sync is not configured/)).toBeInTheDocument();
+    expect(mockRequestGoogleAccessToken).not.toHaveBeenCalled();
   });
 
-  it("shows error toast when getSession fails and does not fetch data", async () => {
-    mockGetSession.mockResolvedValue({ data: { session: null }, error: { message: "Session expired" } });
+  it("schedules uploads only after a Google token is configured", async () => {
+    const user = userEvent.setup();
 
     await act(async () => {
       render(
         <AuthProvider>
           <TestConsumer />
-        </AuthProvider>
+        </AuthProvider>,
       );
     });
 
-    expect(screen.getByText(/Sign in failed: Session expired/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "sync-now" }));
+    expect(mockScheduleUpload).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "sign-in" }));
+    await screen.findByText("signed-in:Test User");
+    await user.click(screen.getByRole("button", { name: "sync-now" }));
+
+    expect(mockScheduleUpload).toHaveBeenCalledWith();
+  });
+
+  it("revokes the token and clears sync on sign-out", async () => {
+    const user = userEvent.setup();
+
+    await act(async () => {
+      render(
+        <AuthProvider>
+          <TestConsumer />
+        </AuthProvider>,
+      );
+    });
+
+    await user.click(screen.getByRole("button", { name: "sign-in" }));
+    await screen.findByText("signed-in:Test User");
+    await user.click(screen.getByRole("button", { name: "sign-out" }));
+
+    expect(mockRevokeGoogleAccessToken).toHaveBeenCalledWith("access-token");
+    expect(mockConfigureGoogleDriveSync).toHaveBeenCalledWith(null);
     expect(screen.getByText("signed-out")).toBeInTheDocument();
-    expect(mockDownloadAndMerge).not.toHaveBeenCalled();
-  });
-
-  it("shows toast again after sign-out then fresh sign-in", async () => {
-    mockGetSession.mockResolvedValue({ data: { session: { user: fakeUser } } });
-
-    await act(async () => {
-      render(
-        <AuthProvider>
-          <TestConsumer />
-        </AuthProvider>
-      );
-    });
-
-    mockTrackEvent.mockClear();
-
-    // Simulate sign-out
-    await act(async () => {
-      authCallback("SIGNED_OUT", null);
-    });
-
-    // Simulate fresh sign-in
-    await act(async () => {
-      authCallback("SIGNED_IN", { user: fakeUser });
-    });
-
-    expect(screen.getByText(/Signed in as testuser/)).toBeInTheDocument();
-    expect(mockTrackEvent).toHaveBeenCalledWith("sign_in", { provider: "github" });
   });
 });

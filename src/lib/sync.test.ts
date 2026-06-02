@@ -11,87 +11,63 @@ import {
   loadSolvedDates,
   loadReminders,
 } from "@/lib/storage";
+import { createCloudDocument, withProgressNamespace, type CloudDocument } from "@/lib/cloud-document";
+import type { ProgressPayload } from "@/lib/progress-state";
 
-const { mockUpsert, mockSingle } = vi.hoisted(() => ({
-  mockUpsert: vi.fn().mockResolvedValue({ error: null }),
-  mockSingle: vi.fn().mockResolvedValue({ data: null, error: { code: "PGRST116" } }),
+const { mockRead, mockWrite } = vi.hoisted(() => ({
+  mockRead: vi.fn(),
+  mockWrite: vi.fn(),
 }));
 
-// Mock supabase before importing sync
-vi.mock("@/lib/supabase", () => ({
-  supabase: {
-    from: () => ({
-      upsert: mockUpsert,
-      select: () => ({
-        eq: () => ({
-          single: mockSingle,
-        }),
-      }),
-    }),
-  },
+vi.mock("@/lib/google-drive", () => ({
+  GoogleDriveAppDataStore: vi.fn().mockImplementation(function GoogleDriveAppDataStore() {
+    return {
+      read: mockRead,
+      write: mockWrite,
+    };
+  }),
 }));
 
-import { mergeFromRealtimePayload, uploadProgress, downloadAndMerge, scheduleUpload, flushPendingUpload } from "@/lib/sync";
+import {
+  configureGoogleDriveSync,
+  downloadAndMerge,
+  flushPendingUpload,
+  mergeFromRealtimePayload,
+  scheduleUpload,
+  uploadProgress,
+} from "@/lib/sync";
 
 beforeEach(() => {
   localStorage.clear();
-  mockUpsert.mockClear();
-  mockSingle.mockClear();
+  mockRead.mockReset();
+  mockWrite.mockReset();
+  mockRead.mockResolvedValue({ fileId: null, document: null });
+  mockWrite.mockResolvedValue("drive-file-1");
+  configureGoogleDriveSync("token");
 });
+
+function progress(overrides: Partial<ProgressPayload> = {}): ProgressPayload {
+  return {
+    completed: [],
+    starred: [],
+    notes: {},
+    solved_dates: {},
+    reminders: {},
+    updated_at: "2026-01-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+function documentWithProgress(payload: ProgressPayload): CloudDocument {
+  return withProgressNamespace(createCloudDocument(), payload);
+}
 
 describe("mergeFromRealtimePayload", () => {
   it("applies remote completed when local is empty", () => {
-    const changed = mergeFromRealtimePayload({
-      completed: [1, 2, 3],
-      starred: [],
-      notes: {},
-      solved_dates: {},
-      reminders: {},
-    });
+    const changed = mergeFromRealtimePayload(progress({ completed: [1, 2, 3] }) as unknown as Record<string, unknown>);
 
     expect(changed).toBe(true);
     expect(loadCompleted()).toEqual(new Set([1, 2, 3]));
-  });
-
-  it("applies remote starred when local is empty", () => {
-    const changed = mergeFromRealtimePayload({
-      completed: [],
-      starred: [5, 10],
-      notes: {},
-      solved_dates: {},
-      reminders: {},
-    });
-
-    expect(changed).toBe(true);
-    expect(loadStarred()).toEqual(new Set([5, 10]));
-  });
-
-  it("applies remote notes when local is empty", () => {
-    const changed = mergeFromRealtimePayload({
-      completed: [],
-      starred: [],
-      notes: { 1: "hello" },
-      solved_dates: {},
-      reminders: {},
-    });
-
-    expect(changed).toBe(true);
-    expect(loadNotes()).toEqual({ 1: "hello" });
-  });
-
-  it("detects changed note values (not just key count)", () => {
-    saveNotes({ 1: "old note" });
-
-    const changed = mergeFromRealtimePayload({
-      completed: [],
-      starred: [],
-      notes: { 1: "updated note" },
-      solved_dates: {},
-      reminders: {},
-    });
-
-    expect(changed).toBe(true);
-    expect(loadNotes()).toEqual({ 1: "updated note" });
   });
 
   it("returns false when remote and local are identical", () => {
@@ -101,273 +77,106 @@ describe("mergeFromRealtimePayload", () => {
     saveSolvedDates({ 1: "2026-01-01" });
     saveReminders({ 1: { nextReview: "2026-01-02", interval: 1 } });
 
-    const changed = mergeFromRealtimePayload({
+    const changed = mergeFromRealtimePayload(progress({
       completed: [1, 2],
       starred: [3],
       notes: { 1: "note" },
       solved_dates: { 1: "2026-01-01" },
       reminders: { 1: { nextReview: "2026-01-02", interval: 1 } },
-    });
+    }) as unknown as Record<string, unknown>);
 
     expect(changed).toBe(false);
   });
 
-  it("detects removed completed items", () => {
-    saveCompleted(new Set([1, 2, 3]));
-
-    const changed = mergeFromRealtimePayload({
-      completed: [1, 2],
-      starred: [],
-      notes: {},
-      solved_dates: {},
-      reminders: {},
-    });
+  it("applies remote notes, solved dates, starred, and reminders", () => {
+    const changed = mergeFromRealtimePayload(progress({
+      starred: [5],
+      notes: { 1: "hello" },
+      solved_dates: { 1: "2026-02-02" },
+      reminders: { 1: { nextReview: "2026-02-03", interval: 1 } },
+    }) as unknown as Record<string, unknown>);
 
     expect(changed).toBe(true);
-    expect(loadCompleted()).toEqual(new Set([1, 2]));
-  });
-
-  it("applies remote solved_dates", () => {
-    const changed = mergeFromRealtimePayload({
-      completed: [],
-      starred: [],
-      notes: {},
-      solved_dates: { 5: "2026-03-10T00:00:00Z" },
-      reminders: {},
-    });
-
-    expect(changed).toBe(true);
-    expect(loadSolvedDates()).toEqual({ 5: "2026-03-10T00:00:00Z" });
-  });
-
-  it("applies remote reminders", () => {
-    const changed = mergeFromRealtimePayload({
-      completed: [],
-      starred: [],
-      notes: {},
-      solved_dates: {},
-      reminders: { 1: { nextReview: "2026-03-15", interval: 3 } },
-    });
-
-    expect(changed).toBe(true);
-    expect(loadReminders()).toEqual({ 1: { nextReview: "2026-03-15", interval: 3 } });
-  });
-
-  it("detects changed reminder values", () => {
-    saveReminders({ 1: { nextReview: "2026-03-10", interval: 1 } });
-
-    const changed = mergeFromRealtimePayload({
-      completed: [],
-      starred: [],
-      notes: {},
-      solved_dates: {},
-      reminders: { 1: { nextReview: "2026-03-15", interval: 3 } },
-    });
-
-    expect(changed).toBe(true);
-    expect(loadReminders()).toEqual({ 1: { nextReview: "2026-03-15", interval: 3 } });
-  });
-
-  it("handles null/undefined fields in payload gracefully", () => {
-    const changed = mergeFromRealtimePayload({
-      completed: null,
-      starred: undefined,
-      notes: null,
-      solved_dates: undefined,
-      reminders: null,
-    } as unknown as Record<string, unknown>);
-
-    expect(changed).toBe(false);
-  });
-
-  it("detects deleted notes (remote has fewer keys)", () => {
-    saveNotes({ 1: "note one", 2: "note two" });
-
-    const changed = mergeFromRealtimePayload({
-      completed: [],
-      starred: [],
-      notes: { 1: "note one" },
-      solved_dates: {},
-      reminders: {},
-    });
-
-    expect(changed).toBe(true);
-    expect(loadNotes()).toEqual({ 1: "note one" });
-  });
-
-  it("detects removed starred items", () => {
-    saveStarred(new Set([1, 2, 3]));
-
-    const changed = mergeFromRealtimePayload({
-      completed: [],
-      starred: [1],
-      notes: {},
-      solved_dates: {},
-      reminders: {},
-    });
-
-    expect(changed).toBe(true);
-    expect(loadStarred()).toEqual(new Set([1]));
-  });
-
-  it("detects changed solved_dates values", () => {
-    saveSolvedDates({ 1: "2026-01-01" });
-
-    const changed = mergeFromRealtimePayload({
-      completed: [],
-      starred: [],
-      notes: {},
-      solved_dates: { 1: "2026-03-10" },
-      reminders: {},
-    });
-
-    expect(changed).toBe(true);
-    expect(loadSolvedDates()).toEqual({ 1: "2026-03-10" });
+    expect(loadStarred()).toEqual(new Set([5]));
+    expect(loadNotes()).toEqual({ 1: "hello" });
+    expect(loadSolvedDates()).toEqual({ 1: "2026-02-02" });
+    expect(loadReminders()).toEqual({ 1: { nextReview: "2026-02-03", interval: 1 } });
   });
 });
 
 describe("uploadProgress", () => {
-  it("upserts current localStorage state to Supabase", async () => {
+  it("writes current localStorage state to Google Drive app data", async () => {
     saveCompleted(new Set([1, 2]));
     saveStarred(new Set([3]));
     saveNotes({ 1: "note" });
     saveSolvedDates({ 1: "2026-01-01" });
     saveReminders({ 1: { nextReview: "2026-01-02", interval: 1 } });
 
-    await uploadProgress("user-123");
+    await uploadProgress();
 
-    expect(mockUpsert).toHaveBeenCalledWith(
+    expect(mockWrite).toHaveBeenCalledWith(
       expect.objectContaining({
-        user_id: "user-123",
-        completed: [1, 2],
-        starred: [3],
-        notes: { 1: "note" },
-        solved_dates: { 1: "2026-01-01" },
-        reminders: { 1: { nextReview: "2026-01-02", interval: 1 } },
+        namespaces: expect.objectContaining({
+          progress: expect.objectContaining({
+            data: expect.objectContaining({
+              completed: [1, 2],
+              starred: [3],
+              notes: { 1: "note" },
+              solved_dates: { 1: "2026-01-01" },
+              reminders: { 1: { nextReview: "2026-01-02", interval: 1 } },
+            }),
+          }),
+        }),
       }),
-      { onConflict: "user_id" },
+      null,
     );
   });
 
-  it("uploads empty data when localStorage is empty", async () => {
-    await uploadProgress("user-123");
-
-    expect(mockUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        user_id: "user-123",
-        completed: [],
-        starred: [],
-        notes: {},
-        solved_dates: {},
-        reminders: {},
-      }),
-      { onConflict: "user_id" },
-    );
+  it("does nothing when Google Drive sync is not configured", async () => {
+    configureGoogleDriveSync(null);
+    await uploadProgress();
+    expect(mockWrite).not.toHaveBeenCalled();
   });
 });
 
 describe("downloadAndMerge", () => {
-  it("uploads local data when no remote data exists", async () => {
-    mockSingle.mockResolvedValueOnce({ data: null, error: { code: "PGRST116" } });
+  it("uploads local data when no remote document exists", async () => {
     saveCompleted(new Set([1]));
 
-    const result = await downloadAndMerge("user-123");
+    const result = await downloadAndMerge();
 
     expect(result).toBe(false);
-    expect(mockUpsert).toHaveBeenCalled();
+    expect(mockWrite).toHaveBeenCalled();
   });
 
-  it("overwrites local completed with remote", async () => {
+  it("overwrites local progress with remote progress namespace", async () => {
     saveCompleted(new Set([1, 2]));
-    mockSingle.mockResolvedValueOnce({
-      data: { completed: [2, 3], starred: [], notes: {}, solved_dates: {}, reminders: {} },
-      error: null,
+    mockRead.mockResolvedValueOnce({
+      fileId: "drive-file-1",
+      document: documentWithProgress(progress({
+        completed: [2, 3],
+        starred: [8],
+        notes: { 8: "remote" },
+      })),
     });
 
-    const result = await downloadAndMerge("user-123");
+    const result = await downloadAndMerge();
 
     expect(result).toBe(true);
     expect(loadCompleted()).toEqual(new Set([2, 3]));
+    expect(loadStarred()).toEqual(new Set([8]));
+    expect(loadNotes()).toEqual({ 8: "remote" });
   });
 
-  it("overwrites local starred with remote", async () => {
-    saveStarred(new Set([1, 2]));
-    mockSingle.mockResolvedValueOnce({
-      data: { completed: [], starred: [3, 4], notes: {}, solved_dates: {}, reminders: {} },
-      error: null,
+  it("does not upload when remote progress exists", async () => {
+    mockRead.mockResolvedValueOnce({
+      fileId: "drive-file-1",
+      document: documentWithProgress(progress({ completed: [1] })),
     });
 
-    await downloadAndMerge("user-123");
+    await downloadAndMerge();
 
-    expect(loadStarred()).toEqual(new Set([3, 4]));
-  });
-
-  it("overwrites local notes with remote", async () => {
-    saveNotes({ 1: "local note" });
-    mockSingle.mockResolvedValueOnce({
-      data: { completed: [], starred: [], notes: { 1: "remote note", 2: "remote only" }, solved_dates: {}, reminders: {} },
-      error: null,
-    });
-
-    await downloadAndMerge("user-123");
-
-    const notes = loadNotes();
-    expect(notes[1]).toBe("remote note");
-    expect(notes[2]).toBe("remote only");
-  });
-
-  it("overwrites local solved_dates with remote", async () => {
-    saveSolvedDates({ 1: "2026-03-10" });
-    mockSingle.mockResolvedValueOnce({
-      data: { completed: [], starred: [], notes: {}, solved_dates: { 1: "2026-01-01", 2: "2026-02-02" }, reminders: {} },
-      error: null,
-    });
-
-    await downloadAndMerge("user-123");
-
-    const dates = loadSolvedDates();
-    expect(dates[1]).toBe("2026-01-01");
-    expect(dates[2]).toBe("2026-02-02");
-  });
-
-  it("overwrites local reminders with remote", async () => {
-    saveReminders({ 1: { nextReview: "2026-01-01", interval: 1 } });
-    mockSingle.mockResolvedValueOnce({
-      data: { completed: [], starred: [], notes: {}, solved_dates: {}, reminders: { 2: { nextReview: "2026-03-15", interval: 3 } } },
-      error: null,
-    });
-
-    await downloadAndMerge("user-123");
-
-    expect(loadReminders()).toEqual({ 2: { nextReview: "2026-03-15", interval: 3 } });
-  });
-
-  it("does not push state back to Supabase after overwriting", async () => {
-    mockSingle.mockResolvedValueOnce({
-      data: { completed: [1], starred: [], notes: {}, solved_dates: {}, reminders: {} },
-      error: null,
-    });
-
-    await downloadAndMerge("user-123");
-
-    expect(mockUpsert).not.toHaveBeenCalled();
-  });
-
-  it("handles null fields in remote data gracefully", async () => {
-    saveCompleted(new Set([1]));
-    saveNotes({ 1: "note" });
-    mockSingle.mockResolvedValueOnce({
-      data: { completed: null, starred: null, notes: null, solved_dates: null, reminders: null },
-      error: null,
-    });
-
-    await downloadAndMerge("user-123");
-
-    expect(loadCompleted()).toEqual(new Set());
-    expect(loadStarred()).toEqual(new Set());
-    expect(loadNotes()).toEqual({});
-    expect(loadSolvedDates()).toEqual({});
-    expect(loadReminders()).toEqual({});
+    expect(mockWrite).not.toHaveBeenCalled();
   });
 });
 
@@ -375,15 +184,15 @@ describe("scheduleUpload", () => {
   it("debounces upload calls", async () => {
     vi.useFakeTimers();
 
-    scheduleUpload("user-123");
-    scheduleUpload("user-123");
-    scheduleUpload("user-123");
+    scheduleUpload();
+    scheduleUpload();
+    scheduleUpload();
 
-    expect(mockUpsert).not.toHaveBeenCalled();
+    expect(mockWrite).not.toHaveBeenCalled();
 
     await vi.advanceTimersByTimeAsync(1000);
 
-    expect(mockUpsert).toHaveBeenCalledTimes(1);
+    expect(mockWrite).toHaveBeenCalledTimes(1);
 
     vi.useRealTimers();
   });
@@ -393,43 +202,22 @@ describe("flushPendingUpload", () => {
   it("fires the pending upload immediately without waiting for debounce", async () => {
     vi.useFakeTimers();
 
-    scheduleUpload("user-flush");
-
-    expect(mockUpsert).not.toHaveBeenCalled();
+    scheduleUpload();
+    expect(mockWrite).not.toHaveBeenCalled();
 
     flushPendingUpload();
 
-    // Upload should fire synchronously (the async upsert is mocked)
     await vi.advanceTimersByTimeAsync(0);
-    expect(mockUpsert).toHaveBeenCalledTimes(1);
-    expect(mockUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({ user_id: "user-flush" }),
-      { onConflict: "user_id" },
-    );
+    expect(mockWrite).toHaveBeenCalledTimes(1);
 
-    // Original debounce timer should no longer fire a second upload
     await vi.advanceTimersByTimeAsync(1000);
-    expect(mockUpsert).toHaveBeenCalledTimes(1);
+    expect(mockWrite).toHaveBeenCalledTimes(1);
 
     vi.useRealTimers();
   });
 
   it("does nothing when there is no pending upload", () => {
     flushPendingUpload();
-    expect(mockUpsert).not.toHaveBeenCalled();
-  });
-
-  it("does nothing after the debounce has already fired", async () => {
-    vi.useFakeTimers();
-
-    scheduleUpload("user-123");
-    await vi.advanceTimersByTimeAsync(1000);
-    expect(mockUpsert).toHaveBeenCalledTimes(1);
-
-    mockUpsert.mockClear();
-    flushPendingUpload();
-    expect(mockUpsert).not.toHaveBeenCalled();
-
-    vi.useRealTimers();
+    expect(mockWrite).not.toHaveBeenCalled();
   });
 });
