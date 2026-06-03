@@ -1,6 +1,7 @@
 "use client";
 
-import { BookOpen, Bug, ExternalLink, X } from "lucide-react";
+import { BookOpen, Bug, Code2, ExternalLink, X } from "lucide-react";
+import { useState } from "react";
 import type { Question } from "@/types/question";
 import { getStudyGuide } from "@/lib/study";
 import TwoSumAnimation from "./TwoSumAnimation";
@@ -12,6 +13,7 @@ interface StudyModalProps {
 
 export default function StudyModal({ question, onClose }: StudyModalProps) {
   const guide = getStudyGuide(question);
+  const [showSolution, setShowSolution] = useState(false);
 
   return (
     <div
@@ -92,6 +94,37 @@ export default function StudyModal({ question, onClose }: StudyModalProps) {
               </div>
 
               <StudyList title="Fix Hints" items={guide.fixHints} />
+              {guide.solutionCode && (
+                <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900 dark:bg-emerald-950/25">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="flex items-center gap-2 text-sm font-semibold text-emerald-950 dark:text-emerald-100">
+                      <Code2 className="h-4 w-4" />
+                      Solution
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setShowSolution((current) => !current)}
+                      className="rounded-md border border-emerald-300 bg-white px-2.5 py-1.5 text-xs font-medium text-emerald-800 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-zinc-950 dark:text-emerald-100 dark:hover:bg-emerald-950"
+                    >
+                      {showSolution ? "Hide solution" : "Show solution"}
+                    </button>
+                  </div>
+
+                  {showSolution && (
+                    <div className="mt-3 space-y-3">
+                      <div className="text-xs font-semibold uppercase text-emerald-800 dark:text-emerald-200">
+                        {guide.solutionLanguage ?? "Code"}
+                      </div>
+                      <pre className="overflow-x-auto rounded-md bg-zinc-950 p-3 text-xs leading-5 text-zinc-100">
+                        <code>{guide.solutionCode}</code>
+                      </pre>
+                      {guide.solutionNotes && (
+                        <StudyList title="Why It Works" items={guide.solutionNotes} />
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="rounded-md border border-zinc-200 p-3 dark:border-zinc-800">
                 <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">

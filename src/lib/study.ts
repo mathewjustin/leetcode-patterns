@@ -10,6 +10,9 @@ export interface StudyGuide {
   bugPrompt: string;
   buggyCode: string;
   fixHints: string[];
+  solutionLanguage?: string;
+  solutionCode?: string;
+  solutionNotes?: string[];
 }
 
 const questionGuides: Record<string, StudyGuide> = {
@@ -20,16 +23,49 @@ const questionGuides: Record<string, StudyGuide> = {
     plan: ["Create a map from value to index.", "For each index, compute complement = target - nums[i].", "Check the map before inserting the current value.", "Return the stored complement index and the current index when found.", "Insert nums[i] only after the check so an element cannot pair with itself."],
     edgeCases: ["Duplicate values, like [3, 3] with target 6", "Negative numbers", "Complement equals the current value", "No pair in defensive implementations"],
     complexityTarget: "O(n) time because each number is visited once. O(n) space because the map can hold up to n previously seen numbers.",
-    bugPrompt: "This Two Sum sketch inserts before checking, so one value can pair with itself.",
-    buggyCode: `function twoSum(nums, target) {
-  const seen = new Map();
-  for (let i = 0; i < nums.length; i++) {
-    seen.set(nums[i], i);
-    const j = seen.get(target - nums[i]);
-    if (j !== undefined) return [j, i];
+    bugPrompt: "This Java Two Sum sketch inserts before checking, so one value can pair with itself.",
+    buggyCode: `import java.util.HashMap;
+import java.util.Map;
+
+class Solution {
+  public int[] twoSum(int[] nums, int target) {
+    Map<Integer, Integer> seen = new HashMap<>();
+
+    for (int i = 0; i < nums.length; i++) {
+      seen.put(nums[i], i);
+      int complement = target - nums[i];
+
+      if (seen.containsKey(complement)) {
+        return new int[] { seen.get(complement), i };
+      }
+    }
+
+    return new int[] {};
   }
 }`,
     fixHints: ["Check for the complement before inserting the current value.", "Make sure the two returned indices are different.", "Test nums=[3, 2, 4], target=6 and nums=[3, 3], target=6."],
+    solutionLanguage: "Java",
+    solutionCode: `import java.util.HashMap;
+import java.util.Map;
+
+class Solution {
+  public int[] twoSum(int[] nums, int target) {
+    Map<Integer, Integer> seen = new HashMap<>();
+
+    for (int i = 0; i < nums.length; i++) {
+      int complement = target - nums[i];
+
+      if (seen.containsKey(complement)) {
+        return new int[] { seen.get(complement), i };
+      }
+
+      seen.put(nums[i], i);
+    }
+
+    return new int[] {};
+  }
+}`,
+    solutionNotes: ["Check the complement before inserting the current number.", "The map stores value -> index so the answer can return original positions.", "Time is O(n) because the loop visits each element once; space is O(n) because the map can grow with the input."],
   },
 };
 
