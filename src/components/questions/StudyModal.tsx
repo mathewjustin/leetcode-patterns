@@ -3,6 +3,7 @@
 import { BookOpen, Bug, ExternalLink, X } from "lucide-react";
 import type { Question } from "@/types/question";
 import { getStudyGuide } from "@/lib/study";
+import TwoSumAnimation from "./TwoSumAnimation";
 
 interface StudyModalProps {
   question: Question;
@@ -20,7 +21,7 @@ export default function StudyModal({ question, onClose }: StudyModalProps) {
       <section
         aria-modal="true"
         role="dialog"
-        className="flex max-h-full w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-xl dark:border-zinc-700 dark:bg-zinc-950"
+        className="flex max-h-[calc(100dvh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-xl dark:border-zinc-700 dark:bg-zinc-950"
         onClick={(event) => event.stopPropagation()}
       >
         <header className="flex items-start justify-between gap-4 border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
@@ -47,7 +48,9 @@ export default function StudyModal({ question, onClose }: StudyModalProps) {
           </button>
         </header>
 
-        <div className="overflow-y-auto px-5 py-4">
+        <div className="overflow-y-auto px-4 py-4 pb-6 sm:px-5">
+          <StudyAnimation question={question} />
+
           <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
             <section className="space-y-4">
               <div>
@@ -123,6 +126,16 @@ export default function StudyModal({ question, onClose }: StudyModalProps) {
           </button>
         </footer>
       </section>
+    </div>
+  );
+}
+
+function StudyAnimation({ question }: { question: Question }) {
+  if (question.slug !== "two-sum") return null;
+
+  return (
+    <div className="mb-4">
+      <TwoSumAnimation />
     </div>
   );
 }

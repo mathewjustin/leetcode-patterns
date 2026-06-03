@@ -12,6 +12,27 @@ export interface StudyGuide {
   fixHints: string[];
 }
 
+const questionGuides: Record<string, StudyGuide> = {
+  "two-sum": {
+    pattern: "Hash Table",
+    mentalModel: "As you scan left to right, the hash map remembers values you have already passed. For each number, ask whether its complement is already waiting in the map.",
+    recognition: ["You need two different indices whose values combine to a target.", "A brute force loop repeatedly asks whether the needed partner exists.", "The order of the answer does not matter, but the original indices do."],
+    plan: ["Create a map from value to index.", "For each index, compute complement = target - nums[i].", "Check the map before inserting the current value.", "Return the stored complement index and the current index when found.", "Insert nums[i] only after the check so an element cannot pair with itself."],
+    edgeCases: ["Duplicate values, like [3, 3] with target 6", "Negative numbers", "Complement equals the current value", "No pair in defensive implementations"],
+    complexityTarget: "O(n) time because each number is visited once. O(n) space because the map can hold up to n previously seen numbers.",
+    bugPrompt: "This Two Sum sketch inserts before checking, so one value can pair with itself.",
+    buggyCode: `function twoSum(nums, target) {
+  const seen = new Map();
+  for (let i = 0; i < nums.length; i++) {
+    seen.set(nums[i], i);
+    const j = seen.get(target - nums[i]);
+    if (j !== undefined) return [j, i];
+  }
+}`,
+    fixHints: ["Check for the complement before inserting the current value.", "Make sure the two returned indices are different.", "Test nums=[3, 2, 4], target=6 and nums=[3, 3], target=6."],
+  },
+};
+
 const guides: Record<string, Omit<StudyGuide, "pattern">> = {
   "Array": {
     mentalModel: "Track positions and values deliberately. Most array mistakes come from mutating too early, skipping an index, or losing the original value.",
@@ -188,6 +209,9 @@ const fallback: Omit<StudyGuide, "pattern"> = {
 };
 
 export function getStudyGuide(question: Question): StudyGuide {
+  const questionGuide = questionGuides[question.slug];
+  if (questionGuide) return questionGuide;
+
   const pattern = question.pattern[0] ?? "General";
   const key = guides[pattern] ? pattern : aliases[pattern] ?? pattern;
   return {
