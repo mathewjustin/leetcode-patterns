@@ -33,7 +33,7 @@ jobs:
       - name: Detect changes
         id: changes
         run: |
-          if git diff --quiet -- src/data/questions.json; then
+          if git diff --quiet HEAD -- src/data/questions.json; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
