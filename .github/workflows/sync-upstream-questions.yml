@@ -52,19 +52,33 @@ jobs:
       - name: Open or update pull request
         if: steps.changes.outputs.changed == 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.UPSTREAM_SYNC_TOKEN || github.token }}
           BRANCH: upstream-question-sync
         run: |
+          set +e
           existing_pr="$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')"
 
           if [[ -n "$existing_pr" ]]; then
             gh pr edit "$existing_pr" \
               --title "Sync upstream question metadata" \
               --body "Updates src/data/questions.json from Sean Prashad's upstream repository. This workflow intentionally syncs only question metadata so fork-specific app features stay untouched."
+            status=$?
           else
             gh pr create \
               --base main \
               --head "$BRANCH" \
               --title "Sync upstream question metadata" \
               --body "Updates src/data/questions.json from Sean Prashad's upstream repository. This workflow intentionally syncs only question metadata so fork-specific app features stay untouched."
+            status=$?
+          fi
+
+          if [[ "$status" -ne 0 ]]; then
+            echo "::warning::Updated branch '$BRANCH', but could not create or update the PR. Enable 'Allow GitHub Actions to create and approve pull requests' in repository settings, or add an UPSTREAM_SYNC_TOKEN secret with pull request write access."
+            {
+              echo "### Upstream question sync branch updated"
+              echo
+              echo "The branch \`$BRANCH\` was pushed with upstream question metadata changes, but this workflow could not create or update the PR."
+              echo
+              echo "To allow automatic PR creation, enable **Allow GitHub Actions to create and approve pull requests** in repository settings, or add an \`UPSTREAM_SYNC_TOKEN\` secret with pull request write access."
+            } >> "$GITHUB_STEP_SUMMARY"
           fi
