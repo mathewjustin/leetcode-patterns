@@ -16,6 +16,54 @@ export interface StudyGuide {
 }
 
 const questionGuides: Record<string, StudyGuide> = {
+  "contains-duplicate": {
+    pattern: "Hash Table",
+    mentalModel: "A set is a memory of values you have already seen. While scanning the array, the first value that is already in the set proves a duplicate exists.",
+    recognition: ["The question asks whether any value appears at least twice.", "You do not need the duplicate's index or count, only existence.", "A nested comparison is repeatedly asking whether this value was seen before."],
+    plan: ["Create a set for previously seen numbers.", "For each number, check whether the set already contains it.", "Return true immediately when a repeat is found.", "Add the number to the set only after the check.", "Return false if the scan finishes without a repeat."],
+    edgeCases: ["Empty or one-item arrays", "Duplicate appears at the beginning", "Duplicate appears only at the end", "Negative numbers and zero", "All values unique"],
+    complexityTarget: "O(n) time because each number is checked once. O(n) space because the set can hold every number when all values are unique.",
+    bugPrompt: "This Java Contains Duplicate sketch resets the set inside the loop, so it forgets everything seen before the current item.",
+    buggyCode: `import java.util.HashSet;
+import java.util.Set;
+
+class Solution {
+  public boolean containsDuplicate(int[] nums) {
+    for (int num : nums) {
+      Set<Integer> seen = new HashSet<>();
+
+      if (seen.contains(num)) {
+        return true;
+      }
+
+      seen.add(num);
+    }
+
+    return false;
+  }
+}`,
+    fixHints: ["Create the set before the loop so it survives across iterations.", "Check before adding the current value.", "Test nums=[1, 2, 3, 1] and nums=[1, 2, 3, 4]."],
+    solutionLanguage: "Java",
+    solutionCode: `import java.util.HashSet;
+import java.util.Set;
+
+class Solution {
+  public boolean containsDuplicate(int[] nums) {
+    Set<Integer> seen = new HashSet<>();
+
+    for (int num : nums) {
+      if (seen.contains(num)) {
+        return true;
+      }
+
+      seen.add(num);
+    }
+
+    return false;
+  }
+}`,
+    solutionNotes: ["The set must live outside the loop so each iteration remembers earlier values.", "Return as soon as seen.contains(num) is true because one duplicate is enough.", "Time is O(n) for one pass; space is O(n) in the all-unique case."],
+  },
   "two-sum": {
     pattern: "Hash Table",
     mentalModel: "As you scan left to right, the hash map remembers values you have already passed. For each number, ask whether its complement is already waiting in the map.",
