@@ -1,0 +1,70 @@
+name: Sync Upstream Questions
+
+on:
+  schedule:
+    # Every 3 days at 03:20 UTC.
+    - cron: "20 3 */3 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-upstream-questions
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Fetch upstream
+        run: |
+          git remote add upstream https://github.com/seanprashad/leetcode-patterns.git
+          git fetch upstream main --prune
+
+      - name: Copy upstream question data
+        run: git checkout upstream/main -- src/data/questions.json
+
+      - name: Detect changes
+        id: changes
+        run: |
+          if git diff --quiet -- src/data/questions.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create sync branch
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git checkout -B upstream-question-sync
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/data/questions.json
+          git commit -m "chore: sync upstream question metadata"
+          git push --force-with-lease origin upstream-question-sync
+
+      - name: Open or update pull request
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: upstream-question-sync
+        run: |
+          existing_pr="$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')"
+
+          if [[ -n "$existing_pr" ]]; then
+            gh pr edit "$existing_pr" \
+              --title "Sync upstream question metadata" \
+              --body "Updates src/data/questions.json from Sean Prashad's upstream repository. This workflow intentionally syncs only question metadata so fork-specific app features stay untouched."
+          else
+            gh pr create \
+              --base main \
+              --head "$BRANCH" \
+              --title "Sync upstream question metadata" \
+              --body "Updates src/data/questions.json from Sean Prashad's upstream repository. This workflow intentionally syncs only question metadata so fork-specific app features stay untouched."
+          fi
