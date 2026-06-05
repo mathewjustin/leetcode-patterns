@@ -6,6 +6,7 @@ import type { Question } from "@/types/question";
 import { getStudyGuide } from "@/lib/study";
 import ContainsDuplicateAnimation from "./ContainsDuplicateAnimation";
 import TwoSumAnimation from "./TwoSumAnimation";
+import ValidAnagramAnimation from "./ValidAnagramAnimation";
 
 interface StudyModalProps {
   question: Question;
@@ -165,6 +166,14 @@ export default function StudyModal({ question, onClose }: StudyModalProps) {
 }
 
 function StudyAnimation({ question }: { question: Question }) {
+  if (question.slug === "valid-anagram") {
+    return (
+      <div className="mb-4">
+        <ValidAnagramAnimation />
+      </div>
+    );
+  }
+
   if (question.slug === "contains-duplicate") {
     return (
       <div className="mb-4">

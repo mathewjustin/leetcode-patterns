@@ -16,6 +16,63 @@ export interface StudyGuide {
 }
 
 const questionGuides: Record<string, StudyGuide> = {
+  "valid-anagram": {
+    pattern: "Hash Table",
+    mentalModel: "An anagram preserves character counts. Count every character in the first string, then spend those counts while scanning the second string.",
+    recognition: ["Two strings need the same multiset of characters.", "Order does not matter, but frequency does.", "Sorting works, but counting keeps the check linear."],
+    plan: ["Return false immediately when lengths differ.", "Count each character from s.", "Scan t and decrement the matching count.", "If a character is missing or already used up, return false.", "Return true after all counts balance."],
+    edgeCases: ["Different lengths", "Same letters with different counts", "Repeated characters", "Empty strings", "Characters that appear only in one string"],
+    complexityTarget: "O(n) time because each string is scanned once. O(k) space for the character counts, where k is the alphabet size; for lowercase English letters this is O(1).",
+    bugPrompt: "This Java Valid Anagram sketch uses a set, so it remembers only whether a character exists and loses how many times it appears.",
+    buggyCode: `import java.util.HashSet;
+import java.util.Set;
+
+class Solution {
+  public boolean isAnagram(String s, String t) {
+    if (s.length() != t.length()) {
+      return false;
+    }
+
+    Set<Character> chars = new HashSet<>();
+    for (char c : s.toCharArray()) {
+      chars.add(c);
+    }
+
+    for (char c : t.toCharArray()) {
+      if (!chars.contains(c)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+}`,
+    fixHints: ["Use counts, not just membership.", "Length equality is necessary but not enough.", "Test s=\"aacc\", t=\"ccac\"; a set-based solution incorrectly returns true."],
+    solutionLanguage: "Java",
+    solutionCode: `class Solution {
+  public boolean isAnagram(String s, String t) {
+    if (s.length() != t.length()) {
+      return false;
+    }
+
+    int[] counts = new int[26];
+
+    for (int i = 0; i < s.length(); i++) {
+      counts[s.charAt(i) - 'a']++;
+      counts[t.charAt(i) - 'a']--;
+    }
+
+    for (int count : counts) {
+      if (count != 0) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+}`,
+    solutionNotes: ["The array index maps each lowercase letter to one counter.", "Increment for s and decrement for t; anagrams end with every counter at zero.", "Time is O(n); space is O(1) for the fixed 26-letter lowercase alphabet."],
+  },
   "contains-duplicate": {
     pattern: "Hash Table",
     mentalModel: "A set is a memory of values you have already seen. While scanning the array, the first value that is already in the set proves a duplicate exists.",
