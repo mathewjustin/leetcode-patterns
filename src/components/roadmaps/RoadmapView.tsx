@@ -77,6 +77,7 @@ export default function RoadmapView({ roadmap, questions }: Props) {
   const [collapsedPhases, setCollapsedPhases] = useState<Set<string | number>>(
     new Set()
   );
+  const [roadmapCollapsed, setRoadmapCollapsed] = useState(false);
   const [expandedHints, setExpandedHints] = useState<Set<string>>(new Set());
   const [editingNote, setEditingNote] = useState<{
     id: number;
@@ -463,7 +464,26 @@ export default function RoadmapView({ roadmap, questions }: Props) {
     <div className="space-y-6">
       {/* Header */}
       <div className="group rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
-        <h2 className="text-lg font-bold">{roadmap.name}</h2>
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="text-lg font-bold">{roadmap.name}</h2>
+          <button
+            type="button"
+            onClick={() => setRoadmapCollapsed((collapsed) => !collapsed)}
+            className="rounded p-1 text-zinc-500 transition-colors hover:bg-zinc-200 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+            aria-expanded={!roadmapCollapsed}
+            aria-controls={`${roadmap.id}-roadmap-content`}
+            title={roadmapCollapsed ? "Expand roadmap" : "Collapse roadmap"}
+          >
+            {roadmapCollapsed ? (
+              <ChevronRight className="h-5 w-5" />
+            ) : (
+              <ChevronDown className="h-5 w-5" />
+            )}
+            <span className="sr-only">
+              {roadmapCollapsed ? "Expand" : "Collapse"} {roadmap.name}
+            </span>
+          </button>
+        </div>
         <p className="mt-1 text-sm text-zinc-500"><InlineMarkdown text={roadmap.description} /></p>
         <div className="mt-3">
           <div className="mb-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium">
@@ -509,8 +529,9 @@ export default function RoadmapView({ roadmap, questions }: Props) {
         </div>
       </div>
 
-      {/* Beginner: group by difficulty → phases */}
-      {difficultyGroups ? (
+      <div id={`${roadmap.id}-roadmap-content`} hidden={roadmapCollapsed}>
+        {/* Beginner: group by difficulty → phases */}
+        {difficultyGroups ? (
         <div className="space-y-8">
           {difficultyGroups.map((group) => {
             const diffBorder: Record<string, string> = {
@@ -730,10 +751,10 @@ export default function RoadmapView({ roadmap, questions }: Props) {
             );
           })}
         </div>
-      )}
+        )}
 
-      {/* Next Steps */}
-      {roadmap.nextSteps && roadmap.nextSteps.length > 0 && (
+        {/* Next Steps */}
+        {roadmap.nextSteps && roadmap.nextSteps.length > 0 && (
         <div className="mt-8 overflow-hidden rounded-xl border border-blue-300 dark:border-blue-800">
           <div className="bg-blue-50 px-4 py-3 dark:bg-blue-950/30">
             <div className="flex items-center gap-3">
@@ -756,7 +777,8 @@ export default function RoadmapView({ roadmap, questions }: Props) {
             ))}
           </div>
         </div>
-      )}
+        )}
+      </div>
 
       {/* Note Modal - same as QuestionsTable */}
       {editingNote &&

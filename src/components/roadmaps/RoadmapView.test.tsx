@@ -158,6 +158,20 @@ describe("RoadmapView", () => {
     expect(completedElements.length).toBeGreaterThanOrEqual(1);
   });
 
+  it("collapses and expands the roadmap content", async () => {
+    const user = userEvent.setup();
+    render(<RoadmapView roadmap={beginnerRoadmap} questions={testData} />);
+
+    const content = document.getElementById("beginner-roadmap-content");
+    expect(content).not.toHaveAttribute("hidden");
+
+    await user.click(screen.getByRole("button", { name: `Collapse ${beginnerRoadmap.name}` }));
+    expect(content).toHaveAttribute("hidden");
+
+    await user.click(screen.getByRole("button", { name: `Expand ${beginnerRoadmap.name}` }));
+    expect(content).not.toHaveAttribute("hidden");
+  });
+
   it("renders phase headers", () => {
     render(<RoadmapView roadmap={beginnerRoadmap} questions={testData} />);
     expect(screen.getByText(beginnerRoadmap.phases[0].title)).toBeInTheDocument();
