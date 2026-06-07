@@ -21,18 +21,6 @@ export default function Home() {
           <h1>
             <Logo />
           </h1>
-          <p className="text-base italic text-zinc-500">
-            by{" "}
-            <a
-              href="https://github.com/SeanPrashad"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:underline dark:text-blue-400"
-            >
-              Sean Prashad
-            </a>
-            {" · Est. 2019"}
-          </p>
           <p className="mt-1 text-sm text-zinc-500 sm:mt-2 sm:text-base">
             A collection of {questions.length} questions grouped by pattern to help you prepare for coding interviews.
           </p>
