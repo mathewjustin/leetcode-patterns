@@ -484,8 +484,9 @@ export default function RoadmapView({ roadmap, questions }: Props) {
             </span>
           </button>
         </div>
-        <p className="mt-1 text-sm text-zinc-500"><InlineMarkdown text={roadmap.description} /></p>
-        <div className="mt-3">
+        <div style={roadmapCollapsed ? { display: "none" } : undefined}>
+          <p className="mt-1 text-sm text-zinc-500"><InlineMarkdown text={roadmap.description} /></p>
+          <div className="mt-3">
           <div className="mb-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium">
             <span>{stats.done}/{stats.total} completed ({stats.pct}%)</span>
             <div className="flex gap-4 sm:opacity-0 sm:transition-opacity sm:duration-500 sm:ease-in-out sm:group-hover:opacity-100">
@@ -528,8 +529,12 @@ export default function RoadmapView({ roadmap, questions }: Props) {
           </div>
         </div>
       </div>
+      </div>
 
-      <div id={`${roadmap.id}-roadmap-content`} hidden={roadmapCollapsed}>
+      <div
+        id={`${roadmap.id}-roadmap-content`}
+        style={roadmapCollapsed ? { display: "none" } : undefined}
+      >
         {/* Beginner: group by difficulty → phases */}
         {difficultyGroups ? (
         <div className="space-y-8">

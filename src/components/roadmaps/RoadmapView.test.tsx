@@ -163,13 +163,15 @@ describe("RoadmapView", () => {
     render(<RoadmapView roadmap={beginnerRoadmap} questions={testData} />);
 
     const content = document.getElementById("beginner-roadmap-content");
-    expect(content).not.toHaveAttribute("hidden");
+    expect(content).toBeVisible();
 
     await user.click(screen.getByRole("button", { name: `Collapse ${beginnerRoadmap.name}` }));
-    expect(content).toHaveAttribute("hidden");
+    expect(content).not.toBeVisible();
+    expect(screen.getByText(/structured path for those new/)).not.toBeVisible();
 
     await user.click(screen.getByRole("button", { name: `Expand ${beginnerRoadmap.name}` }));
-    expect(content).not.toHaveAttribute("hidden");
+    expect(content).toBeVisible();
+    expect(screen.getByText(/structured path for those new/)).toBeVisible();
   });
 
   it("renders phase headers", () => {
