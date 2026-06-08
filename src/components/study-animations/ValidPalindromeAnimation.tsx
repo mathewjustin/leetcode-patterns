@@ -61,6 +61,10 @@ export default function ValidPalindromeAnimation() {
   const [isPlaying, setIsPlaying] = useState(false);
   const step = steps[stepIndex];
   const isDone = stepIndex === steps.length - 1;
+  const comparisonText =
+    step.left === null || step.right === null
+      ? step.label
+      : `left = ${step.left}, right = ${step.right}: '${normalized[step.left]}' vs '${normalized[step.right]}'`;
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -145,9 +149,7 @@ export default function ValidPalindromeAnimation() {
 
           <div className="rounded-md border border-teal-200 bg-white p-3 text-sm text-zinc-700 dark:border-teal-900 dark:bg-zinc-950 dark:text-zinc-200">
             <div className="font-medium text-zinc-950 dark:text-zinc-50">
-              {step.left === null
-                ? step.label
-                : `left = ${step.left}, right = ${step.right}: '${normalized[step.left]}' vs '${normalized[step.right ?? step.left]}'`}
+              {comparisonText}
             </div>
             <p className="mt-1 leading-6">{step.note}</p>
             {isDone && (
