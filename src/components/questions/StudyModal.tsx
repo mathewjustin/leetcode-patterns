@@ -4,9 +4,7 @@ import { BookOpen, Bug, Code2, ExternalLink, X } from "lucide-react";
 import { useState } from "react";
 import type { Question } from "@/types/question";
 import { getStudyGuide } from "@/lib/study";
-import ContainsDuplicateAnimation from "./ContainsDuplicateAnimation";
-import TwoSumAnimation from "./TwoSumAnimation";
-import ValidAnagramAnimation from "./ValidAnagramAnimation";
+import { studyAnimations } from "@/components/study-animations";
 
 interface StudyModalProps {
   question: Question;
@@ -166,27 +164,12 @@ export default function StudyModal({ question, onClose }: StudyModalProps) {
 }
 
 function StudyAnimation({ question }: { question: Question }) {
-  if (question.slug === "valid-anagram") {
-    return (
-      <div className="mb-4">
-        <ValidAnagramAnimation />
-      </div>
-    );
-  }
-
-  if (question.slug === "contains-duplicate") {
-    return (
-      <div className="mb-4">
-        <ContainsDuplicateAnimation />
-      </div>
-    );
-  }
-
-  if (question.slug !== "two-sum") return null;
+  const Animation = studyAnimations[question.slug];
+  if (!Animation) return null;
 
   return (
     <div className="mb-4">
-      <TwoSumAnimation />
+      <Animation />
     </div>
   );
 }

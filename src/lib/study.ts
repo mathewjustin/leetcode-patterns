@@ -73,6 +73,63 @@ class Solution {
 }`,
     solutionNotes: ["The array index maps each lowercase letter to one counter.", "Increment for s and decrement for t; anagrams end with every counter at zero.", "Time is O(n); space is O(1) for the fixed 26-letter lowercase alphabet."],
   },
+  "valid-palindrome": {
+    pattern: "Two Pointers",
+    mentalModel: "A palindrome mirrors around its center. Skip non-alphanumeric characters, compare the next valid left and right characters, and move inward only after a match.",
+    recognition: ["You compare characters from opposite ends.", "The prompt says to ignore case and non-alphanumeric characters.", "A cleaned copy works, but two pointers can avoid extra storage."],
+    plan: ["Set left at the start and right at the end.", "Move left forward while it points at a non-alphanumeric character.", "Move right backward while it points at a non-alphanumeric character.", "Compare lowercase versions of both characters.", "Return false on the first mismatch; otherwise move both pointers inward until they cross."],
+    edgeCases: ["Empty string after filtering", "Only punctuation or spaces", "Mixed uppercase and lowercase", "Digits mixed with letters", "Mismatch hidden behind punctuation"],
+    complexityTarget: "O(n) time because each pointer only moves inward. O(1) extra space when comparing characters in place.",
+    bugPrompt: "This Java Valid Palindrome sketch compares raw characters, so spaces, punctuation, and uppercase letters can cause false mismatches.",
+    buggyCode: `class Solution {
+  public boolean isPalindrome(String s) {
+    int left = 0;
+    int right = s.length() - 1;
+
+    while (left < right) {
+      if (s.charAt(left) != s.charAt(right)) {
+        return false;
+      }
+
+      left++;
+      right--;
+    }
+
+    return true;
+  }
+}`,
+    fixHints: ["Skip characters that are not letters or digits before comparing.", "Compare lowercase versions of the two valid characters.", "Test s=\"A man, a plan, a canal: Panama\" and s=\"race a car\"."],
+    solutionLanguage: "Java",
+    solutionCode: `class Solution {
+  public boolean isPalindrome(String s) {
+    int left = 0;
+    int right = s.length() - 1;
+
+    while (left < right) {
+      while (left < right && !Character.isLetterOrDigit(s.charAt(left))) {
+        left++;
+      }
+
+      while (left < right && !Character.isLetterOrDigit(s.charAt(right))) {
+        right--;
+      }
+
+      char a = Character.toLowerCase(s.charAt(left));
+      char b = Character.toLowerCase(s.charAt(right));
+
+      if (a != b) {
+        return false;
+      }
+
+      left++;
+      right--;
+    }
+
+    return true;
+  }
+}`,
+    solutionNotes: ["The inner loops discard characters the problem says to ignore.", "Lowercasing before comparison makes 'A' and 'a' equivalent.", "Each pointer only moves inward, so the scan stays linear with constant extra space."],
+  },
   "contains-duplicate": {
     pattern: "Hash Table",
     mentalModel: "A set is a memory of values you have already seen. While scanning the array, the first value that is already in the set proves a duplicate exists.",
