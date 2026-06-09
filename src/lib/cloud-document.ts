@@ -1,4 +1,5 @@
 import type { ProgressPayload } from "./progress-state";
+import type { PersonalTipsPayload } from "./tips-state";
 
 export const CLOUD_DOCUMENT_NAME = "justin-leetcode-patterns-store.v1.json";
 
@@ -17,6 +18,7 @@ export interface CloudDocument {
   };
   namespaces: {
     progress?: CloudNamespace<ProgressPayload>;
+    personal_tips?: CloudNamespace<PersonalTipsPayload>;
     [namespace: string]: CloudNamespace<unknown> | undefined;
   };
 }
@@ -64,6 +66,28 @@ export function withProgressNamespace(doc: CloudDocument, progress: ProgressPayl
         version: 1,
         updated_at: progress.updated_at,
         data: progress,
+      },
+    },
+  };
+}
+
+export function withPersonalTipsNamespace(
+  doc: CloudDocument,
+  personalTips: PersonalTipsPayload,
+): CloudDocument {
+  const now = new Date().toISOString();
+  return {
+    ...doc,
+    app: {
+      ...doc.app,
+      updated_at: now,
+    },
+    namespaces: {
+      ...doc.namespaces,
+      personal_tips: {
+        version: 1,
+        updated_at: personalTips.updated_at,
+        data: personalTips,
       },
     },
   };

@@ -51,38 +51,60 @@ describe("TipsView", () => {
     );
   });
 
-  it("edits an existing tip", async () => {
+  it("keeps built-in tips read-only", () => {
+    render(<TipsView />);
+
+    expect(
+      screen.queryByRole("button", {
+        name: "Edit Toggle traversal direction with one boolean",
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", {
+        name: "Delete Toggle traversal direction with one boolean",
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("edits a personal tip", async () => {
     const user = userEvent.setup();
     render(<TipsView />);
 
+    await user.click(screen.getByRole("button", { name: "Add tip" }));
+    await user.type(screen.getByLabelText("Title"), "Keep a loop invariant");
+    await user.type(
+      screen.getByLabelText("Explanation"),
+      "Write down what remains true.",
+    );
+    await user.click(screen.getByRole("button", { name: "Save tip" }));
     await user.click(
       screen.getByRole("button", {
-        name: "Edit Toggle traversal direction with one boolean",
+        name: "Edit Keep a loop invariant",
       }),
     );
     const title = screen.getByLabelText("Title");
     await user.clear(title);
-    await user.type(title, "Alternate direction with a boolean");
+    await user.type(title, "State the loop invariant");
     await user.click(screen.getByRole("button", { name: "Save tip" }));
 
-    expect(
-      screen.getByText("Alternate direction with a boolean"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("State the loop invariant")).toBeInTheDocument();
   });
 
-  it("deletes a tip after confirmation", async () => {
+  it("deletes a personal tip after confirmation", async () => {
     const user = userEvent.setup();
     render(<TipsView />);
 
+    await user.click(screen.getByRole("button", { name: "Add tip" }));
+    await user.type(screen.getByLabelText("Title"), "Temporary tip");
+    await user.type(screen.getByLabelText("Explanation"), "Delete this.");
+    await user.click(screen.getByRole("button", { name: "Save tip" }));
     await user.click(
       screen.getByRole("button", {
-        name: "Delete Toggle traversal direction with one boolean",
+        name: "Delete Temporary tip",
       }),
     );
     await user.click(screen.getByRole("button", { name: "Delete tip" }));
 
-    expect(
-      screen.queryByText("Toggle traversal direction with one boolean"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Temporary tip")).not.toBeInTheDocument();
   });
 });

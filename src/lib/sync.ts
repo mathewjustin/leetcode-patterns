@@ -1,4 +1,9 @@
-import { createCloudDocument, withProgressNamespace, type CloudDocument } from "./cloud-document";
+import {
+  createCloudDocument,
+  withPersonalTipsNamespace,
+  withProgressNamespace,
+  type CloudDocument,
+} from "./cloud-document";
 import { GoogleDriveAppDataStore } from "./google-drive";
 import {
   applyProgressPayload,
@@ -6,6 +11,13 @@ import {
   readProgressPayload,
   type ProgressPayload,
 } from "./progress-state";
+import {
+  applyPersonalTipsPayload,
+  mergePersonalTips,
+  personalTipsPayloadChanged,
+  readPersonalTipsPayload,
+  type PersonalTipsPayload,
+} from "./tips-state";
 
 let driveStore: GoogleDriveAppDataStore | null = null;
 let cachedFileId: string | null = null;
@@ -18,10 +30,11 @@ export function configureGoogleDriveSync(accessToken: string | null): void {
 export async function uploadProgress(): Promise<void> {
   if (!driveStore) return;
 
-  const progress = readProgressPayload();
   const existing = await driveStore.read();
   cachedFileId = existing.fileId;
-  const document = withProgressNamespace(existing.document ?? createCloudDocument(), progress);
+  const document = withCurrentLocalData(
+    existing.document ?? createCloudDocument(),
+  );
   cachedFileId = await driveStore.write(document, cachedFileId);
 }
 
@@ -37,14 +50,33 @@ export async function downloadAndMerge(): Promise<boolean> {
   }
 
   const remoteProgress = getProgress(existing.document);
-  if (!remoteProgress) {
-    await uploadProgress();
-    return false;
+  const remotePersonalTips = getPersonalTips(existing.document);
+  const progressChanged = remoteProgress
+    ? progressPayloadChanged(remoteProgress)
+    : false;
+  const localPersonalTips = readPersonalTipsPayload();
+  const mergedPersonalTips = remotePersonalTips
+    ? mergePersonalTips(localPersonalTips.items, remotePersonalTips.items)
+    : localPersonalTips.items;
+  const personalTipsChanged = personalTipsPayloadChanged({
+    items: mergedPersonalTips,
+  });
+  const remotePersonalTipsChanged = remotePersonalTips
+    ? JSON.stringify(remotePersonalTips.items) !==
+      JSON.stringify(mergedPersonalTips)
+    : true;
+
+  if (progressChanged && remoteProgress) applyProgressPayload(remoteProgress);
+  if (personalTipsChanged) {
+    applyPersonalTipsPayload({ items: mergedPersonalTips });
   }
 
-  const changed = progressPayloadChanged(remoteProgress);
-  if (changed) applyProgressPayload(remoteProgress);
-  return changed;
+  if (!remoteProgress || !remotePersonalTips || remotePersonalTipsChanged) {
+    const document = withCurrentLocalData(existing.document);
+    cachedFileId = await driveStore.write(document, cachedFileId);
+  }
+
+  return progressChanged || personalTipsChanged;
 }
 
 let lastUploadAt = 0;
@@ -87,4 +119,16 @@ export function mergeFromRealtimePayload(data: Record<string, unknown>): boolean
 function getProgress(document: CloudDocument): ProgressPayload | null {
   const progress = document.namespaces.progress?.data;
   return progress ?? null;
+}
+
+function getPersonalTips(document: CloudDocument): PersonalTipsPayload | null {
+  const personalTips = document.namespaces.personal_tips?.data;
+  return personalTips ?? null;
+}
+
+function withCurrentLocalData(document: CloudDocument): CloudDocument {
+  return withPersonalTipsNamespace(
+    withProgressNamespace(document, readProgressPayload()),
+    readPersonalTipsPayload(),
+  );
 }

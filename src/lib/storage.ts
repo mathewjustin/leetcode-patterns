@@ -10,7 +10,7 @@ const NOTES_KEY = "leetcode-patterns-notes";
 const SHUFFLE_KEY = "leetcode-patterns-shuffle-order";
 const SOLVED_DATES_KEY = "leetcode-patterns-solved-dates";
 const REMINDERS_KEY = "leetcode-patterns-reminders";
-const TIPS_KEY = "leetcode-patterns-personal-tips";
+const PERSONAL_TIPS_KEY = "leetcode-patterns-personal-tips";
 
 export const STARTER_TIPS: Tip[] = [
   {
@@ -105,14 +105,21 @@ export function saveReminders(reminders: Record<number, Reminder>): void {
   saveJson(REMINDERS_KEY, reminders);
 }
 
-export function loadTips(): Tip[] {
-  if (typeof window === "undefined") return STARTER_TIPS;
-  if (localStorage.getItem(TIPS_KEY) === null) return STARTER_TIPS;
-  return loadJson<Tip[]>(TIPS_KEY, STARTER_TIPS);
+export function loadPersonalTips(): Tip[] {
+  if (typeof window === "undefined") return [];
+  const stored = loadJson<Tip[]>(PERSONAL_TIPS_KEY, []);
+  const starterIds = new Set(STARTER_TIPS.map((tip) => tip.id));
+  const personalTips = stored.filter((tip) => !starterIds.has(tip.id));
+
+  if (personalTips.length !== stored.length) {
+    savePersonalTips(personalTips);
+  }
+
+  return personalTips;
 }
 
-export function saveTips(tips: Tip[]): void {
-  saveJson(TIPS_KEY, tips);
+export function savePersonalTips(tips: Tip[]): void {
+  saveJson(PERSONAL_TIPS_KEY, tips);
 }
 
 export function loadShuffleOrder(): number[] | null {

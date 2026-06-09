@@ -113,14 +113,24 @@ read or write. The document is versioned and organized by namespace:
         "solved_dates": {},
         "reminders": {}
       }
+    },
+    "personal_tips": {
+      "version": 1,
+      "updated_at": "2026-06-09T00:00:00.000Z",
+      "data": {
+        "items": [],
+        "updated_at": "2026-06-09T00:00:00.000Z"
+      }
     }
   }
 }
 ```
 
-New data types should be added as new namespaces, for example `debug_drills`,
-`interview_sessions`, `settings`, or `spaced_repetition`, instead of mixing them
-into the `progress` payload.
+Built-in programming tips remain part of the app and are read-only. Tips created
+by the user are stored under `personal_tips`, where they can sync privately
+across browsers. New data types should be added as new namespaces, for example
+`debug_drills`, `interview_sessions`, `settings`, or `spaced_repetition`,
+instead of mixing them into the `progress` payload.
 
 To enable sync, create a Google OAuth web client and set
 `NEXT_PUBLIC_GOOGLE_CLIENT_ID` for the deployment. The mounted blog build also

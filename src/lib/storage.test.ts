@@ -6,7 +6,7 @@ import {
   loadNotes, saveNotes,
   loadSolvedDates, saveSolvedDates,
   loadReminders, saveReminders,
-  loadTips, saveTips, STARTER_TIPS,
+  loadPersonalTips, savePersonalTips, STARTER_TIPS,
   loadShuffleOrder, saveShuffleOrder,
   migrateLegacyProgress,
 } from "@/lib/storage";
@@ -99,8 +99,8 @@ describe("reminders", () => {
 });
 
 describe("personal tips", () => {
-  it("returns starter tips when nothing is stored", () => {
-    expect(loadTips()).toEqual(STARTER_TIPS);
+  it("returns an empty collection when nothing is stored", () => {
+    expect(loadPersonalTips()).toEqual([]);
   });
 
   it("round-trips tips through save and load", () => {
@@ -114,13 +114,30 @@ describe("personal tips", () => {
         updatedAt: "2026-06-09",
       },
     ];
-    saveTips(tips);
-    expect(loadTips()).toEqual(tips);
+    savePersonalTips(tips);
+    expect(loadPersonalTips()).toEqual(tips);
   });
 
   it("preserves an intentionally empty collection", () => {
-    saveTips([]);
-    expect(loadTips()).toEqual([]);
+    savePersonalTips([]);
+    expect(loadPersonalTips()).toEqual([]);
+  });
+
+  it("migrates old combined storage by removing built-in tips", () => {
+    const personalTip = {
+      id: "personal-tip",
+      title: "Personal",
+      category: "Arrays",
+      content: "Mine",
+      createdAt: "2026-06-09",
+      updatedAt: "2026-06-09",
+    };
+    localStorage.setItem(
+      "leetcode-patterns-personal-tips",
+      JSON.stringify([STARTER_TIPS[0], personalTip]),
+    );
+
+    expect(loadPersonalTips()).toEqual([personalTip]);
   });
 });
 

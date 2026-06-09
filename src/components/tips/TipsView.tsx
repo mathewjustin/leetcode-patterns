@@ -11,8 +11,16 @@ import {
   X,
 } from "lucide-react";
 import ConfirmModal from "@/components/questions/ConfirmModal";
-import { loadTips, saveTips } from "@/lib/storage";
+import {
+  loadPersonalTips,
+  savePersonalTips,
+  STARTER_TIPS,
+} from "@/lib/storage";
 import { trackEvent } from "@/lib/analytics";
+import {
+  useAuth,
+  type AppUser,
+} from "@/components/layout/AuthContext";
 import type { Tip } from "@/types/tip";
 
 interface TipDraft {
@@ -29,8 +37,12 @@ const EMPTY_DRAFT: TipDraft = {
   code: "",
 };
 
-function today() {
-  return new Date().toISOString().slice(0, 10);
+function now() {
+  return new Date().toISOString();
+}
+
+function formatDate(value: string) {
+  return value.slice(0, 10);
 }
 
 function makeId() {
@@ -41,7 +53,22 @@ function makeId() {
 }
 
 export default function TipsView() {
-  const [tips, setTips] = useState<Tip[]>(() => loadTips());
+  const { user, syncNow, syncVersion } = useAuth();
+  return (
+    <TipsContent key={syncVersion} user={user} syncNow={syncNow} />
+  );
+}
+
+function TipsContent({
+  user,
+  syncNow,
+}: {
+  user: AppUser | null;
+  syncNow: () => void;
+}) {
+  const [personalTips, setPersonalTips] = useState<Tip[]>(() =>
+    loadPersonalTips(),
+  );
   const [query, setQuery] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<TipDraft>(EMPTY_DRAFT);
@@ -50,6 +77,7 @@ export default function TipsView() {
 
   const filteredTips = useMemo(() => {
     const normalized = query.trim().toLowerCase();
+    const tips = [...STARTER_TIPS, ...personalTips];
     if (!normalized) return tips;
     return tips.filter((tip) =>
       [tip.title, tip.category, tip.content, tip.code ?? ""]
@@ -57,11 +85,12 @@ export default function TipsView() {
         .toLowerCase()
         .includes(normalized),
     );
-  }, [query, tips]);
+  }, [query, personalTips]);
 
   const persist = (nextTips: Tip[]) => {
-    setTips(nextTips);
-    saveTips(nextTips);
+    setPersonalTips(nextTips);
+    savePersonalTips(nextTips);
+    syncNow();
   };
 
   const startAdding = () => {
@@ -92,10 +121,10 @@ export default function TipsView() {
     const content = draft.content.trim();
     if (!title || !content) return;
 
-    const date = today();
+    const timestamp = now();
     if (editingId) {
       persist(
-        tips.map((tip) =>
+        personalTips.map((tip) =>
           tip.id === editingId
             ? {
                 ...tip,
@@ -103,7 +132,7 @@ export default function TipsView() {
                 category: draft.category.trim() || "General",
                 content,
                 code: draft.code.trim() || undefined,
-                updatedAt: date,
+                updatedAt: timestamp,
               }
             : tip,
         ),
@@ -117,10 +146,10 @@ export default function TipsView() {
           category: draft.category.trim() || "General",
           content,
           code: draft.code.trim() || undefined,
-          createdAt: date,
-          updatedAt: date,
+          createdAt: timestamp,
+          updatedAt: timestamp,
         },
-        ...tips,
+        ...personalTips,
       ]);
       trackEvent("personal_tip_add");
     }
@@ -129,7 +158,7 @@ export default function TipsView() {
 
   const deleteTip = () => {
     if (!deletingTip) return;
-    persist(tips.filter((tip) => tip.id !== deletingTip.id));
+    persist(personalTips.filter((tip) => tip.id !== deletingTip.id));
     setDeletingTip(null);
     trackEvent("personal_tip_delete");
   };
@@ -145,8 +174,8 @@ export default function TipsView() {
             </div>
             <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">My Tips</h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-              Capture small programming insights while they are fresh. These tips
-              are stored locally in this browser.
+              Built-in tips stay unchanged for everyone. Your own tips are stored
+              locally and {user ? "synced to your private Google Drive app data." : "sync to your private Google Drive app data when you sign in."}
             </p>
           </div>
           <button
@@ -270,19 +299,31 @@ export default function TipsView() {
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {filteredTips.map((tip) => (
+          {filteredTips.map((tip) => {
+            const isBuiltIn = STARTER_TIPS.some(
+              (starterTip) => starterTip.id === tip.id,
+            );
+            return (
             <article
               key={tip.id}
               className="flex flex-col rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
             >
               <div className="mb-3 flex items-start justify-between gap-3">
                 <div>
-                  <span className="mb-2 inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                    {tip.category}
-                  </span>
+                  <div className="mb-2 flex flex-wrap gap-2">
+                    <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                      {tip.category}
+                    </span>
+                    {isBuiltIn && (
+                      <span className="inline-flex rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                        Built in
+                      </span>
+                    )}
+                  </div>
                   <h3 className="text-lg font-bold leading-6">{tip.title}</h3>
                 </div>
-                <div className="flex shrink-0 gap-1">
+                {!isBuiltIn && (
+                  <div className="flex shrink-0 gap-1">
                   <button
                     type="button"
                     onClick={() => startEditing(tip)}
@@ -299,7 +340,8 @@ export default function TipsView() {
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
-                </div>
+                  </div>
+                )}
               </div>
               <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-300">
                 {tip.content}
@@ -310,11 +352,13 @@ export default function TipsView() {
                 </pre>
               )}
               <p className="mt-auto pt-4 text-xs text-zinc-400">
-                Learned {tip.createdAt}
-                {tip.updatedAt !== tip.createdAt && ` · Updated ${tip.updatedAt}`}
+                Learned {formatDate(tip.createdAt)}
+                {tip.updatedAt !== tip.createdAt &&
+                  ` · Updated ${formatDate(tip.updatedAt)}`}
               </p>
             </article>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -326,7 +370,7 @@ export default function TipsView() {
               <span className="font-medium text-zinc-700 dark:text-zinc-200">
                 {deletingTip.title}
               </span>{" "}
-              will be permanently removed from this browser.
+              will be removed locally and from your synced private Drive data.
             </>
           }
           confirmLabel="Delete tip"

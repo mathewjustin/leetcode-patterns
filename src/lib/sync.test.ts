@@ -10,9 +10,17 @@ import {
   loadNotes,
   loadSolvedDates,
   loadReminders,
+  loadPersonalTips,
+  savePersonalTips,
 } from "@/lib/storage";
-import { createCloudDocument, withProgressNamespace, type CloudDocument } from "@/lib/cloud-document";
+import {
+  createCloudDocument,
+  withPersonalTipsNamespace,
+  withProgressNamespace,
+  type CloudDocument,
+} from "@/lib/cloud-document";
 import type { ProgressPayload } from "@/lib/progress-state";
+import type { PersonalTipsPayload } from "@/lib/tips-state";
 
 const { mockRead, mockWrite } = vi.hoisted(() => ({
   mockRead: vi.fn(),
@@ -59,7 +67,20 @@ function progress(overrides: Partial<ProgressPayload> = {}): ProgressPayload {
 }
 
 function documentWithProgress(payload: ProgressPayload): CloudDocument {
-  return withProgressNamespace(createCloudDocument(), payload);
+  return withPersonalTipsNamespace(
+    withProgressNamespace(createCloudDocument(), payload),
+    personalTips(),
+  );
+}
+
+function personalTips(
+  overrides: Partial<PersonalTipsPayload> = {},
+): PersonalTipsPayload {
+  return {
+    items: [],
+    updated_at: "2026-01-01T00:00:00.000Z",
+    ...overrides,
+  };
 }
 
 describe("mergeFromRealtimePayload", () => {
@@ -76,7 +97,6 @@ describe("mergeFromRealtimePayload", () => {
     saveNotes({ 1: "note" });
     saveSolvedDates({ 1: "2026-01-01" });
     saveReminders({ 1: { nextReview: "2026-01-02", interval: 1 } });
-
     const changed = mergeFromRealtimePayload(progress({
       completed: [1, 2],
       starred: [3],
@@ -111,6 +131,16 @@ describe("uploadProgress", () => {
     saveNotes({ 1: "note" });
     saveSolvedDates({ 1: "2026-01-01" });
     saveReminders({ 1: { nextReview: "2026-01-02", interval: 1 } });
+    savePersonalTips([
+      {
+        id: "tip-1",
+        title: "My tip",
+        category: "Arrays",
+        content: "Remember this",
+        createdAt: "2026-01-01",
+        updatedAt: "2026-01-01",
+      },
+    ]);
 
     await uploadProgress();
 
@@ -124,6 +154,16 @@ describe("uploadProgress", () => {
               notes: { 1: "note" },
               solved_dates: { 1: "2026-01-01" },
               reminders: { 1: { nextReview: "2026-01-02", interval: 1 } },
+            }),
+          }),
+          personal_tips: expect.objectContaining({
+            data: expect.objectContaining({
+              items: [
+                expect.objectContaining({
+                  id: "tip-1",
+                  title: "My tip",
+                }),
+              ],
             }),
           }),
         }),
@@ -177,6 +217,111 @@ describe("downloadAndMerge", () => {
     await downloadAndMerge();
 
     expect(mockWrite).not.toHaveBeenCalled();
+  });
+
+  it("restores personal tips from their Drive namespace", async () => {
+    const remoteTip = {
+      id: "remote-tip",
+      title: "Remote tip",
+      category: "Graphs",
+      content: "Synced from Drive",
+      createdAt: "2026-01-01",
+      updatedAt: "2026-01-01",
+    };
+    mockRead.mockResolvedValueOnce({
+      fileId: "drive-file-1",
+      document: withPersonalTipsNamespace(
+        withProgressNamespace(createCloudDocument(), progress()),
+        personalTips({ items: [remoteTip] }),
+      ),
+    });
+
+    const result = await downloadAndMerge();
+
+    expect(result).toBe(true);
+    expect(loadPersonalTips()).toEqual([remoteTip]);
+  });
+
+  it("adds missing personal tips namespace without replacing remote progress", async () => {
+    savePersonalTips([
+      {
+        id: "local-tip",
+        title: "Local tip",
+        category: "Arrays",
+        content: "Keep this",
+        createdAt: "2026-01-01",
+        updatedAt: "2026-01-01",
+      },
+    ]);
+    mockRead.mockResolvedValueOnce({
+      fileId: "drive-file-1",
+      document: withProgressNamespace(
+        createCloudDocument(),
+        progress({ completed: [9] }),
+      ),
+    });
+
+    await downloadAndMerge();
+
+    expect(loadCompleted()).toEqual(new Set([9]));
+    expect(mockWrite).toHaveBeenCalledWith(
+      expect.objectContaining({
+        namespaces: expect.objectContaining({
+          progress: expect.objectContaining({
+            data: expect.objectContaining({ completed: [9] }),
+          }),
+          personal_tips: expect.objectContaining({
+            data: expect.objectContaining({
+              items: [expect.objectContaining({ id: "local-tip" })],
+            }),
+          }),
+        }),
+      }),
+      "drive-file-1",
+    );
+  });
+
+  it("merges signed-out local tips into an existing Drive namespace", async () => {
+    const localTip = {
+      id: "local-tip",
+      title: "Local tip",
+      category: "Arrays",
+      content: "Created before sign-in",
+      createdAt: "2026-06-09T01:00:00.000Z",
+      updatedAt: "2026-06-09T01:00:00.000Z",
+    };
+    const remoteTip = {
+      id: "remote-tip",
+      title: "Remote tip",
+      category: "Graphs",
+      content: "Already in Drive",
+      createdAt: "2026-06-08T01:00:00.000Z",
+      updatedAt: "2026-06-08T01:00:00.000Z",
+    };
+    savePersonalTips([localTip]);
+    mockRead.mockResolvedValueOnce({
+      fileId: "drive-file-1",
+      document: withPersonalTipsNamespace(
+        withProgressNamespace(createCloudDocument(), progress()),
+        personalTips({ items: [remoteTip] }),
+      ),
+    });
+
+    await downloadAndMerge();
+
+    expect(loadPersonalTips()).toEqual([localTip, remoteTip]);
+    expect(mockWrite).toHaveBeenCalledWith(
+      expect.objectContaining({
+        namespaces: expect.objectContaining({
+          personal_tips: expect.objectContaining({
+            data: expect.objectContaining({
+              items: [localTip, remoteTip],
+            }),
+          }),
+        }),
+      }),
+      "drive-file-1",
+    );
   });
 });
 
