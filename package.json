@@ -3,7 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/dev.mjs",
+    "dev:app": "next dev",
+    "excalidraw:arrays": "node scripts/generate-excalidraw-array-library.mjs",
+    "excalidraw:start": "docker compose up -d --pull missing excalidraw",
+    "excalidraw:stop": "docker compose stop excalidraw",
     "build": "next build && node scripts/generate-sw-precache.mjs",
     "start": "next start",
     "lint": "eslint",

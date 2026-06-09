@@ -1,4 +1,5 @@
 import { Question } from "@/types/question";
+import type { Tip } from "@/types/tip";
 import type { Reminder } from "./reminders";
 
 export const MAX_NOTE_LENGTH = 10_000; // characters per note (server enforces 500 KB total)
@@ -9,6 +10,44 @@ const NOTES_KEY = "leetcode-patterns-notes";
 const SHUFFLE_KEY = "leetcode-patterns-shuffle-order";
 const SOLVED_DATES_KEY = "leetcode-patterns-solved-dates";
 const REMINDERS_KEY = "leetcode-patterns-reminders";
+const TIPS_KEY = "leetcode-patterns-personal-tips";
+
+export const STARTER_TIPS: Tip[] = [
+  {
+    id: "toggle-traversal-direction",
+    title: "Toggle traversal direction with one boolean",
+    category: "Arrays",
+    content:
+      "When an algorithm alternates between left-to-right and right-to-left traversal, keep the direction in one boolean. Flip it after each pass instead of duplicating the loop or maintaining separate states.",
+    code: `let moveRight = true;
+
+while (hasNextPass) {
+  if (moveRight) {
+    // Traverse from left to right.
+  } else {
+    // Traverse from right to left.
+  }
+
+  moveRight = !moveRight;
+}`,
+    createdAt: "2026-06-09",
+    updatedAt: "2026-06-09",
+  },
+  {
+    id: "move-boundary-past-found-elements",
+    title: "Move the boundary past elements already searched",
+    category: "Arrays",
+    content:
+      "After finding an element during a directional scan, move that side's pointer one position beyond the found element. The next pass can begin at the new boundary because every element before it has already been inspected. This avoids repeatedly scanning a known region.",
+    code: `// Found a match while moving right.
+left = foundIndex + 1;
+
+// Found a match while moving left.
+right = foundIndex - 1;`,
+    createdAt: "2026-06-09",
+    updatedAt: "2026-06-09",
+  },
+];
 
 // Slugs from the old CRA version, ordered by old 0-based id
 const LEGACY_SLUGS = ["contains-duplicate","missing-number","find-all-numbers-disappeared-in-an-array","single-number","product-of-array-except-self","find-the-duplicate-number","find-all-duplicates-in-an-array","set-matrix-zeroes","spiral-matrix","rotate-image","word-search","first-missing-positive","longest-consecutive-sequence","letter-case-permutation","subsets","subsets-ii","permutations","permutations-ii","combinations","combination-sum","combination-sum-ii","combination-sum-iii","generate-parentheses","target-sum","palindrome-partitioning","letter-combinations-of-a-phone-number","generalized-abbreviation","sudoku-solver","n-queens","climbing-stairs","house-robber","best-time-to-buy-and-sell-stock","maximum-subarray","range-sum-query-immutable","house-robber-ii","coin-change","maximum-product-subarray","longest-increasing-subsequence","longest-palindromic-substring","word-break","combination-sum-iv","decode-ways","unique-paths","jump-game","palindromic-substrings","number-of-longest-increasing-subsequence","partition-equal-subset-sum","partition-to-k-equal-sum-subsets","best-time-to-buy-and-sell-stock-with-cooldown","counting-bits","linked-list-cycle","middle-of-the-linked-list","reverse-linked-list","palindrome-linked-list","remove-linked-list-elements","remove-duplicates-from-sorted-list","linked-list-cycle-ii","add-two-numbers","remove-nth-node-from-end-of-list","sort-list","reorder-list","pacific-atlantic-water-flow","number-of-islands","graph-valid-tree","number-of-connected-components-in-an-undirected-graph","reverse-linked-list-ii","rotate-list","swap-nodes-in-pairs","odd-even-linked-list","reverse-nodes-in-k-group","merge-two-sorted-lists","kth-smallest-element-in-a-sorted-matrix","find-k-pairs-with-smallest-sums","merge-k-sorted-lists","smallest-range-covering-elements-from-k-lists","meeting-rooms","merge-intervals","interval-list-intersections","non-overlapping-intervals","meeting-rooms-ii","task-scheduler","minimum-number-of-arrows-to-burst-balloons","insert-interval","employee-free-time","binary-search","find-smallest-letter-greater-than-target","peak-index-in-a-mountain-array","find-minimum-in-rotated-sorted-array","find-peak-element","search-in-rotated-sorted-array","search-in-rotated-sorted-array-ii","search-a-2d-matrix","search-a-2d-matrix-ii","find-k-closest-elements","count-of-range-sum","minimum-size-subarray-sum","fruit-into-baskets","permutation-in-string","longest-repeating-character-replacement","sliding-window-maximum","longest-substring-without-repeating-characters","minimum-number-of-k-consecutive-bit-flips","count-unique-characters-of-all-substrings-of-a-given-string","minimum-window-substring","substring-with-concatenation-of-all-words","kth-smallest-element-in-a-bst","k-closest-points-to-origin","top-k-frequent-elements","sort-characters-by-frequency","kth-largest-element-in-an-array","reorganize-string","rearrange-string-k-distance-apart","course-schedule-iii","maximum-frequency-stack","course-schedule","course-schedule-ii","minimum-height-trees","alien-dictionary","sequence-reconstruction","binary-tree-level-order-traversal-ii","average-of-levels-in-binary-tree","minimum-depth-of-binary-tree","binary-tree-level-order-traversal","binary-tree-zigzag-level-order-traversal","binary-tree-right-side-view","all-nodes-distance-k-in-binary-tree","same-tree","path-sum","maximum-depth-of-binary-tree","diameter-of-binary-tree","merge-two-binary-trees","lowest-common-ancestor-of-a-binary-search-tree","subtree-of-another-tree","invert-binary-tree","path-sum-ii","path-sum-iii","lowest-common-ancestor-of-a-binary-tree","maximum-binary-tree","maximum-width-of-binary-tree","construct-binary-tree-from-preorder-and-inorder-traversal","validate-binary-search-tree","implement-trie-prefix-tree","binary-tree-maximum-path-sum","serialize-and-deserialize-binary-tree","word-search-ii","find-median-from-data-stream","sliding-window-median","two-sum","squares-of-a-sorted-array","backspace-string-compare","3sum","3sum-closest","subarray-product-less-than-k","sort-colors","trapping-rain-water","container-with-most-water","longest-word-in-dictionary","index-pairs-of-a-string","maximum-xor-of-two-numbers-in-an-array","concatenated-words","prefix-and-suffix-search","palindrome-pairs","design-search-autocomplete-system","word-squares","sort-items-by-groups-respecting-dependencies","median-of-two-sorted-arrays","majority-element","convert-1d-array-into-2d-array","move-zeroes","is-subsequence","binary-tree-paths","factor-combinations","split-a-string-into-the-max-number-of-unique-substrings","maximum-average-subarray-i","gas-station"];
@@ -64,6 +103,16 @@ export function loadReminders(): Record<number, Reminder> {
 
 export function saveReminders(reminders: Record<number, Reminder>): void {
   saveJson(REMINDERS_KEY, reminders);
+}
+
+export function loadTips(): Tip[] {
+  if (typeof window === "undefined") return STARTER_TIPS;
+  if (localStorage.getItem(TIPS_KEY) === null) return STARTER_TIPS;
+  return loadJson<Tip[]>(TIPS_KEY, STARTER_TIPS);
+}
+
+export function saveTips(tips: Tip[]): void {
+  saveJson(TIPS_KEY, tips);
 }
 
 export function loadShuffleOrder(): number[] | null {

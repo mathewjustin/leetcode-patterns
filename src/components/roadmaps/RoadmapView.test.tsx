@@ -69,11 +69,12 @@ describe("ViewSwitcher", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders all three view tabs", () => {
+  it("renders all four view tabs", () => {
     render(<ViewSwitcher questions={testData} updatedDate="2025-01-01" />);
     expect(screen.getByText("All Questions")).toBeInTheDocument();
     expect(screen.getByText("Beginner Roadmap")).toBeInTheDocument();
     expect(screen.getByText("Experienced Roadmap")).toBeInTheDocument();
+    expect(screen.getByText("My Tips")).toBeInTheDocument();
   });
 
   it("defaults to All Questions view", () => {
@@ -128,6 +129,14 @@ describe("ViewSwitcher", () => {
     mockSearchParams.current = new URLSearchParams("view=experienced");
     render(<ViewSwitcher questions={testData} updatedDate="2025-01-01" />);
     expect(screen.getByText(/Originally shared on/)).toBeInTheDocument();
+  });
+
+  it("deep links to My Tips via ?view=tips", () => {
+    mockSearchParams.current = new URLSearchParams("view=tips");
+    render(<ViewSwitcher questions={testData} updatedDate="2025-01-01" />);
+    expect(
+      screen.getByText("Toggle traversal direction with one boolean"),
+    ).toBeInTheDocument();
   });
 
   it("URL param takes priority over localStorage", () => {

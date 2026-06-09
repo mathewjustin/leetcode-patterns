@@ -137,10 +137,15 @@ The app is built with [Next.js] (App Router), [React] 19, [TypeScript], [Tailwin
 
 ```bash
 npm install
-npm run dev         # http://localhost:3000
+npm run dev         # app: http://localhost:3000, Excalidraw: http://localhost:8080
 npm test            # single run
 npm run test:watch  # watch mode
 ```
+
+A local Excalidraw container starts automatically with `npm run dev`. It uses
+Docker's `unless-stopped` restart policy, so it also returns when Docker starts
+after a reboot. Use `npm run excalidraw:stop` to stop it explicitly and
+`npm run excalidraw:start` to start it again.
 
 A [Husky] `pre-push` hook runs `npm test` automatically before every push. This is set up for every clone via the `prepare` script.
 

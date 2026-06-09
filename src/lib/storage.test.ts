@@ -6,6 +6,7 @@ import {
   loadNotes, saveNotes,
   loadSolvedDates, saveSolvedDates,
   loadReminders, saveReminders,
+  loadTips, saveTips, STARTER_TIPS,
   loadShuffleOrder, saveShuffleOrder,
   migrateLegacyProgress,
 } from "@/lib/storage";
@@ -94,6 +95,32 @@ describe("reminders", () => {
   it("returns empty object on corrupt JSON", () => {
     localStorage.setItem("leetcode-patterns-reminders", "not-json");
     expect(loadReminders()).toEqual({});
+  });
+});
+
+describe("personal tips", () => {
+  it("returns starter tips when nothing is stored", () => {
+    expect(loadTips()).toEqual(STARTER_TIPS);
+  });
+
+  it("round-trips tips through save and load", () => {
+    const tips = [
+      {
+        id: "test-tip",
+        title: "Test tip",
+        category: "Arrays",
+        content: "Remember this.",
+        createdAt: "2026-06-09",
+        updatedAt: "2026-06-09",
+      },
+    ];
+    saveTips(tips);
+    expect(loadTips()).toEqual(tips);
+  });
+
+  it("preserves an intentionally empty collection", () => {
+    saveTips([]);
+    expect(loadTips()).toEqual([]);
   });
 });
 
