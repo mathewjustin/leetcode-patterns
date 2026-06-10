@@ -135,7 +135,7 @@ describe("ViewSwitcher", () => {
     mockSearchParams.current = new URLSearchParams("view=tips");
     render(<ViewSwitcher questions={testData} updatedDate="2025-01-01" />);
     expect(
-      screen.getByText("Toggle traversal direction with one boolean"),
+      screen.getByText("Use pass parity to alternate traversal direction"),
     ).toBeInTheDocument();
   });
 

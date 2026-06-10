@@ -17,7 +17,7 @@ describe("TipsView", () => {
     render(<TipsView />);
 
     expect(
-      screen.getByText("Toggle traversal direction with one boolean"),
+      screen.getByText("Use pass parity to alternate traversal direction"),
     ).toBeInTheDocument();
     expect(
       screen.getByText("Move the boundary past elements already searched"),
@@ -56,12 +56,12 @@ describe("TipsView", () => {
 
     expect(
       screen.queryByRole("button", {
-        name: "Edit Toggle traversal direction with one boolean",
+        name: "Edit Use pass parity to alternate traversal direction",
       }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", {
-        name: "Delete Toggle traversal direction with one boolean",
+        name: "Delete Use pass parity to alternate traversal direction",
       }),
     ).not.toBeInTheDocument();
   });

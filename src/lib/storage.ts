@@ -15,23 +15,19 @@ const PERSONAL_TIPS_KEY = "leetcode-patterns-personal-tips";
 export const STARTER_TIPS: Tip[] = [
   {
     id: "toggle-traversal-direction",
-    title: "Toggle traversal direction with one boolean",
+    title: "Use pass parity to alternate traversal direction",
     category: "Arrays",
     content:
-      "When an algorithm alternates between left-to-right and right-to-left traversal, keep the direction in one boolean. Flip it after each pass instead of duplicating the loop or maintaining separate states.",
-    code: `let moveRight = true;
-
-while (hasNextPass) {
-  if (moveRight) {
+      "When traversal alternates between left-to-right and right-to-left, use the existing pass or level index: even for one direction and odd for the other. This avoids a separate direction variable. If no counter already exists, a boolean that flips after each pass is simpler than adding one.",
+    code: `for (let pass = 0; pass < totalPasses; pass++) {
+  if (pass % 2 === 0) {
     // Traverse from left to right.
   } else {
     // Traverse from right to left.
   }
-
-  moveRight = !moveRight;
 }`,
     createdAt: "2026-06-09",
-    updatedAt: "2026-06-09",
+    updatedAt: "2026-06-10",
   },
   {
     id: "move-boundary-past-found-elements",
