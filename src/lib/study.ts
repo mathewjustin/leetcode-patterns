@@ -229,6 +229,145 @@ class Solution {
 }`,
     solutionNotes: ["Check the complement before inserting the current number.", "The map stores value -> index so the answer can return original positions.", "Time is O(n) because the loop visits each element once; space is O(n) because the map can grow with the input."],
   },
+  "find-all-numbers-disappeared-in-an-array": {
+    pattern: "In-Place Marking",
+    mentalModel: "Every value is between 1 and n, so value x owns index x - 1. Mark that index negative to record that x appeared; indices that remain positive identify the missing values.",
+    recognition: ["The array length is n and every value lies in the closed range 1 to n.", "You need to report which values from that range never appear.", "The prompt asks for O(n) time without using extra space for a set."],
+    plan: ["Scan each value and use Math.abs because earlier visits may already have negated it.", "Convert value x to index x - 1.", "Negate nums[index] only when it is still positive.", "Scan the array again.", "For every positive nums[i], add i + 1 to the answer."],
+    edgeCases: ["Every number appears", "Every number is the same", "Duplicate values mark the same index more than once", "The missing value is 1 or n", "Values encountered after their own positions were negated"],
+    complexityTarget: "O(n) time for two linear passes. O(1) auxiliary space, excluding the returned list, because presence is encoded in the input array.",
+    bugPrompt: "This Java sketch uses nums[i] directly after the array has started changing. A previously negated value can produce a negative index.",
+    buggyCode: `import java.util.ArrayList;
+import java.util.List;
+
+class Solution {
+  public List<Integer> findDisappearedNumbers(int[] nums) {
+    for (int i = 0; i < nums.length; i++) {
+      int index = nums[i] - 1;
+      nums[index] = -nums[index];
+    }
+
+    List<Integer> missing = new ArrayList<>();
+    for (int i = 0; i < nums.length; i++) {
+      if (nums[i] > 0) {
+        missing.add(i + 1);
+      }
+    }
+
+    return missing;
+  }
+}`,
+    fixHints: ["Recover the original value with Math.abs(nums[i]).", "Negate a target only when it is positive so duplicate values do not flip it back.", "Test nums=[4, 3, 2, 7, 8, 2, 3, 1] and nums=[1, 1]."],
+    solutionLanguage: "Java",
+    solutionCode: `import java.util.ArrayList;
+import java.util.List;
+
+class Solution {
+  public List<Integer> findDisappearedNumbers(int[] nums) {
+    for (int i = 0; i < nums.length; i++) {
+      int index = Math.abs(nums[i]) - 1;
+
+      if (nums[index] > 0) {
+        nums[index] = -nums[index];
+      }
+    }
+
+    List<Integer> missing = new ArrayList<>();
+    for (int i = 0; i < nums.length; i++) {
+      if (nums[i] > 0) {
+        missing.add(i + 1);
+      }
+    }
+
+    return missing;
+  }
+}`,
+    solutionNotes: ["The value-to-index mapping is x -> x - 1 because array indices are zero-based.", "Math.abs preserves the original value even after its current position has been marked.", "A positive position i after marking means value i + 1 was never encountered."],
+  },
+  "missing-number": {
+    pattern: "Bit Manipulation",
+    mentalModel: "Pair every expected number from 0 through n with every number in the array. XOR cancels equal pairs, leaving only the one value that has no partner.",
+    recognition: ["The array contains n distinct values chosen from the range 0 through n.", "Exactly one value from that complete range is missing.", "You want linear time and constant extra space without risking arithmetic overflow."],
+    plan: ["Initialize missing to n because n is not an array index.", "For each index i, XOR missing with i.", "XOR missing with nums[i] in the same iteration.", "After the loop, return the uncancelled value."],
+    edgeCases: ["Missing value is 0", "Missing value is n", "Single-element arrays [0] and [1]", "Input order is arbitrary", "Large n where a sum formula needs wider arithmetic"],
+    complexityTarget: "O(n) time because the array is scanned once. O(1) extra space because XOR uses one accumulator.",
+    bugPrompt: "This Java XOR sketch starts at 0 and only pairs array indices 0 through n - 1 with the values. It forgets to include the expected value n.",
+    buggyCode: `class Solution {
+  public int missingNumber(int[] nums) {
+    int missing = 0;
+
+    for (int i = 0; i < nums.length; i++) {
+      missing ^= i;
+      missing ^= nums[i];
+    }
+
+    return missing;
+  }
+}`,
+    fixHints: ["The expected range has n + 1 values: 0 through n.", "Initialize the accumulator with nums.length, or XOR n separately.", "Test nums=[3, 0, 1], nums=[0, 1], and nums=[0]."],
+    solutionLanguage: "Java",
+    solutionCode: `class Solution {
+  public int missingNumber(int[] nums) {
+    int missing = nums.length;
+
+    for (int i = 0; i < nums.length; i++) {
+      missing ^= i;
+      missing ^= nums[i];
+    }
+
+    return missing;
+  }
+}`,
+    solutionNotes: ["Each present value cancels with its matching expected value because x ^ x = 0.", "Starting with n includes the one expected value that does not appear among indices 0 through n - 1.", "XOR is order-independent and avoids the overflow concerns of an integer sum."],
+  },
+  "majority-element": {
+    pattern: "Boyer-Moore Voting",
+    mentalModel: "Cancel different values in pairs. Because the majority appears more than half the time, it cannot be completely cancelled and must be the final candidate.",
+    recognition: ["One value is guaranteed to appear more than floor(n / 2) times.", "You only need the majority value, not every frequency.", "A hash map works, but the guarantee allows a constant-space voting algorithm."],
+    plan: ["Keep a candidate and a count.", "When count is zero, choose the current number as the new candidate.", "Increment count when the current number equals the candidate.", "Otherwise decrement count to cancel one candidate occurrence.", "Return the final candidate; the problem guarantee makes a verification pass unnecessary."],
+    edgeCases: ["Single-element array", "Majority changes the apparent candidate several times", "Majority appears mostly near the end", "Negative values", "Exactly the minimum valid majority count"],
+    complexityTarget: "O(n) time for one pass. O(1) extra space because the algorithm stores only a candidate and its vote count.",
+    bugPrompt: "This Java voting sketch checks whether count is zero after processing the current number. When count reaches zero, it can skip choosing the current value as the next candidate.",
+    buggyCode: `class Solution {
+  public int majorityElement(int[] nums) {
+    int candidate = nums[0];
+    int count = 0;
+
+    for (int num : nums) {
+      if (num == candidate) {
+        count++;
+      } else {
+        count--;
+      }
+
+      if (count == 0) {
+        candidate = num;
+      }
+    }
+
+    return candidate;
+  }
+}`,
+    fixHints: ["Choose a candidate at the start of an iteration whenever count is zero.", "Then compare the current value with that candidate and update the count.", "Test nums=[1, 2, 3, 3, 3]; the broken version returns 2 instead of 3."],
+    solutionLanguage: "Java",
+    solutionCode: `class Solution {
+  public int majorityElement(int[] nums) {
+    int candidate = 0;
+    int count = 0;
+
+    for (int num : nums) {
+      if (count == 0) {
+        candidate = num;
+      }
+
+      count += num == candidate ? 1 : -1;
+    }
+
+    return candidate;
+  }
+}`,
+    solutionNotes: ["A non-candidate value cancels one vote for the current candidate.", "Resetting only when count is zero starts a fresh unresolved suffix.", "Since a strict majority is guaranteed, pair cancellation cannot eliminate every occurrence of the answer."],
+  },
 };
 
 const guides: Record<string, Omit<StudyGuide, "pattern">> = {
