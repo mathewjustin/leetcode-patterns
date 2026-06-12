@@ -33,11 +33,14 @@ describe("dedicated study animations", () => {
     expect(screen.getByText("What is bitwise XOR (^), exactly?")).toBeInTheDocument();
     expect(screen.getByText("Other Ways To Solve It")).toBeInTheDocument();
     expect(screen.getByText("Sum formula")).toBeInTheDocument();
+    expect(screen.getByText("The same lists in binary")).toBeInTheDocument();
 
     await advanceToEnd();
 
     expect(screen.getByText("The unpaired value is 2")).toBeInTheDocument();
     expect(screen.getByText("Where does the expected range come from?")).toBeInTheDocument();
+    expect(screen.getByText("Binary accumulator trace")).toBeInTheDocument();
+    expect(screen.getByText("01 ^ 10 ^ 01")).toBeInTheDocument();
   });
 
   it("shows Boyer-Moore vote changes and the final candidate", async () => {

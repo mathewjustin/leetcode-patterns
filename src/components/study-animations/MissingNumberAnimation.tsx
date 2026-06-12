@@ -8,6 +8,11 @@ import {
 
 const nums = [3, 0, 1];
 const expected = [0, 1, 2, 3];
+const bitWidth = 2;
+
+function binary(value: number) {
+  return value.toString(2).padStart(bitWidth, "0");
+}
 
 const steps = [
   {
@@ -108,6 +113,8 @@ export default function MissingNumberAnimation() {
             )}
           </div>
 
+          <BinaryJourney stepIndex={walkthrough.stepIndex} />
+
           {showLoop && <LoopBridge />}
         </div>
 
@@ -187,13 +194,228 @@ function NumberRow({
                     : "border-violet-300 bg-violet-50 text-violet-950 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-100"
               }`}
             >
-              {value}
+              <div>{value}</div>
+              <div className="mt-0.5 font-mono text-[10px] font-medium opacity-70">
+                {binary(value)}
+              </div>
               {isPaired && (
                 <span className="absolute -right-1.5 -top-2 text-xs text-zinc-500">cancel</span>
               )}
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+function BinaryJourney({ stepIndex }: { stepIndex: number }) {
+  const content = [
+    {
+      title: "The same lists in binary",
+      body: (
+        <div className="grid gap-2 text-sm">
+          <BinaryLine label="Should exist" expression="00, 01, 10, 11" />
+          <BinaryLine label="Actually present" expression="11, 00, 01" />
+          <p className="text-zinc-600 dark:text-zinc-300">
+            Binary <code className="font-mono">10</code>, which is decimal 2, appears only in the
+            expected row.
+          </p>
+        </div>
+      ),
+    },
+    {
+      title: "XOR compares one column at a time",
+      body: (
+        <div className="space-y-3">
+          <BitCalculation left={2} right={3} result={1} />
+          <p className="text-sm text-zinc-600 dark:text-zinc-300">
+            Right bit: 0 and 1 differ, so output 1. Left bit: 1 and 1 match, so output 0.
+          </p>
+        </div>
+      ),
+    },
+    {
+      title: "Put all binary values into one XOR chain",
+      body: (
+        <div className="space-y-2">
+          <BinaryExpression expression="00 ^ 01 ^ 10 ^ 11 ^ 11 ^ 00 ^ 01" />
+          <p className="text-sm text-zinc-600 dark:text-zinc-300">
+            This is exactly the decimal expression above, with every number written as two bits.
+          </p>
+        </div>
+      ),
+    },
+    {
+      title: "Group identical bit patterns",
+      body: (
+        <div className="space-y-2">
+          <BinaryExpression expression="(00 ^ 00) ^ (01 ^ 01) ^ (11 ^ 11) ^ 10" />
+          <div className="grid gap-2 sm:grid-cols-3">
+            <BinaryPair value={0} />
+            <BinaryPair value={1} />
+            <BinaryPair value={3} />
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: "Watch the binary pairs become zero",
+      body: (
+        <div className="space-y-2">
+          <BinaryExpression expression="00 ^ 00 ^ 00 ^ 10 = 10" />
+          <div className="rounded-md bg-emerald-100 p-3 text-center text-emerald-950 dark:bg-emerald-950/50 dark:text-emerald-100">
+            <div className="font-mono text-2xl font-bold">10</div>
+            <div className="mt-1 text-sm">binary 10 = decimal 2</div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: "Binary accumulator trace",
+      body: <AccumulatorTrace />,
+    },
+  ][stepIndex];
+
+  return (
+    <div className="rounded-md border border-violet-300 bg-white p-3 dark:border-violet-800 dark:bg-zinc-950">
+      <h4 className="text-sm font-semibold text-violet-950 dark:text-violet-100">
+        {content.title}
+      </h4>
+      <div className="mt-3">{content.body}</div>
+    </div>
+  );
+}
+
+function BinaryLine({ label, expression }: { label: string; expression: string }) {
+  return (
+    <div className="grid gap-1 rounded-md bg-zinc-50 p-2 dark:bg-zinc-900 sm:grid-cols-[7rem_1fr]">
+      <span className="font-medium text-zinc-700 dark:text-zinc-300">{label}</span>
+      <code className="font-mono font-semibold tracking-wider text-violet-800 dark:text-violet-200">
+        {expression}
+      </code>
+    </div>
+  );
+}
+
+function BitCalculation({
+  left,
+  right,
+  result,
+}: {
+  left: number;
+  right: number;
+  result: number;
+}) {
+  const rows = [
+    { label: `${left}`, bits: binary(left) },
+    { label: `^ ${right}`, bits: binary(right) },
+    { label: `= ${result}`, bits: binary(result) },
+  ];
+
+  return (
+    <div className="mx-auto max-w-56 rounded-md bg-zinc-950 p-3 font-mono text-zinc-100">
+      {rows.map((row, rowIndex) => (
+        <div
+          key={row.label}
+          className={`grid grid-cols-[3rem_1fr] py-1 ${
+            rowIndex === rows.length - 1 ? "border-t border-zinc-500" : ""
+          }`}
+        >
+          <span className="text-zinc-400">{row.label}</span>
+          <span className="grid grid-cols-2 gap-2 text-center text-lg font-bold">
+            {row.bits.split("").map((bit, index) => (
+              <span
+                key={`${row.label}-${index}`}
+                className={
+                  rowIndex === rows.length - 1
+                    ? "rounded bg-violet-700 py-0.5"
+                    : "rounded bg-zinc-800 py-0.5"
+                }
+              >
+                {bit}
+              </span>
+            ))}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function BinaryExpression({ expression }: { expression: string }) {
+  return (
+    <div className="overflow-x-auto rounded-md bg-violet-100 px-3 py-3 text-center font-mono font-semibold tracking-wider text-violet-950 dark:bg-violet-950/60 dark:text-violet-100">
+      {expression}
+    </div>
+  );
+}
+
+function BinaryPair({ value }: { value: number }) {
+  return (
+    <div className="rounded-md border border-zinc-200 p-2 text-center dark:border-zinc-800">
+      <div className="font-mono font-semibold">
+        {binary(value)} ^ {binary(value)}
+      </div>
+      <div className="mt-1 font-mono text-violet-700 dark:text-violet-300">= 00</div>
+    </div>
+  );
+}
+
+function AccumulatorTrace() {
+  const rows = [
+    {
+      iteration: "start",
+      calculation: "n = 3",
+      decimal: "3",
+      bits: "11",
+    },
+    {
+      iteration: "i = 0",
+      calculation: "11 ^ 00 ^ 11",
+      decimal: "0",
+      bits: "00",
+    },
+    {
+      iteration: "i = 1",
+      calculation: "00 ^ 01 ^ 00",
+      decimal: "1",
+      bits: "01",
+    },
+    {
+      iteration: "i = 2",
+      calculation: "01 ^ 10 ^ 01",
+      decimal: "2",
+      bits: "10",
+    },
+  ];
+
+  return (
+    <div className="overflow-x-auto">
+      <div className="min-w-[30rem]">
+        <div className="grid grid-cols-[4rem_1fr_4rem_4rem] gap-2 px-2 text-xs font-semibold uppercase text-violet-700 dark:text-violet-300">
+          <span>Step</span>
+          <span>Binary calculation</span>
+          <span>Decimal</span>
+          <span>Binary</span>
+        </div>
+        <div className="mt-2 space-y-2">
+          {rows.map((row, index) => (
+            <div
+              key={row.iteration}
+              className={`grid grid-cols-[4rem_1fr_4rem_4rem] items-center gap-2 rounded-md px-2 py-2 text-sm ${
+                index === rows.length - 1
+                  ? "bg-emerald-100 text-emerald-950 dark:bg-emerald-950/50 dark:text-emerald-100"
+                  : "bg-zinc-50 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+              }`}
+            >
+              <span className="font-medium">{row.iteration}</span>
+              <code className="font-mono">{row.calculation}</code>
+              <span>{row.decimal}</span>
+              <code className="font-mono font-bold">{row.bits}</code>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
