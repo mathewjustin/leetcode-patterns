@@ -286,9 +286,9 @@ class Solution {
   },
   "missing-number": {
     pattern: "Bit Manipulation",
-    mentalModel: "Pair every expected number from 0 through n with every number in the array. XOR cancels equal pairs, leaving only the one value that has no partner.",
-    recognition: ["The array contains n distinct values chosen from the range 0 through n.", "Exactly one value from that complete range is missing.", "You want linear time and constant extra space without risking arithmetic overflow."],
-    plan: ["Initialize missing to n because n is not an array index.", "For each index i, XOR missing with i.", "XOR missing with nums[i] in the same iteration.", "After the loop, return the uncancelled value."],
+    mentalModel: "Think of XOR as pair cancellation. Put one copy of every expected value from 0 through n together with one copy of every value actually present. Equal values cancel to zero, so the only unpaired value left is the missing number.",
+    recognition: ["The array contains n distinct values chosen from the complete range 0 through n.", "Exactly one expected value has no matching copy in the array.", "You want O(n) time and O(1) extra space; XOR also avoids arithmetic overflow."],
+    plan: ["Remember the XOR rules: x ^ x = 0 and x ^ 0 = x.", "Use indices 0 through n - 1 as most of the expected range.", "Initialize missing to n to include the final expected value.", "For every position, XOR both its index and its array value into missing.", "Return the one value that could not cancel with a matching copy."],
     edgeCases: ["Missing value is 0", "Missing value is n", "Single-element arrays [0] and [1]", "Input order is arbitrary", "Large n where a sum formula needs wider arithmetic"],
     complexityTarget: "O(n) time because the array is scanned once. O(1) extra space because XOR uses one accumulator.",
     bugPrompt: "This Java XOR sketch starts at 0 and only pairs array indices 0 through n - 1 with the values. It forgets to include the expected value n.",
@@ -318,7 +318,7 @@ class Solution {
     return missing;
   }
 }`,
-    solutionNotes: ["Each present value cancels with its matching expected value because x ^ x = 0.", "Starting with n includes the one expected value that does not appear among indices 0 through n - 1.", "XOR is order-independent and avoids the overflow concerns of an integer sum."],
+    solutionNotes: ["Indices contribute expected values 0 through n - 1, while the initial nums.length contributes n.", "Array entries contribute every value that is actually present.", "Each present value appears once on both sides and cancels because x ^ x = 0; only the missing value appears once.", "A sum formula, hash set, or sorting also works, but XOR gives O(n) time and O(1) space without overflow."],
   },
   "majority-element": {
     pattern: "Boyer-Moore Voting",

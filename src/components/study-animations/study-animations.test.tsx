@@ -29,12 +29,15 @@ describe("dedicated study animations", () => {
   it("shows XOR cancellation and the missing number", async () => {
     render(<MissingNumberAnimation />);
 
-    expect(screen.getByText("XOR Cancellation Walkthrough")).toBeInTheDocument();
-    expect(screen.getByText("missing = n = 3")).toBeInTheDocument();
+    expect(screen.getByText("Missing Number: Why XOR Works")).toBeInTheDocument();
+    expect(screen.getByText("What is bitwise XOR (^), exactly?")).toBeInTheDocument();
+    expect(screen.getByText("Other Ways To Solve It")).toBeInTheDocument();
+    expect(screen.getByText("Sum formula")).toBeInTheDocument();
 
     await advanceToEnd();
 
-    expect(screen.getByText("Return 2")).toBeInTheDocument();
+    expect(screen.getByText("The unpaired value is 2")).toBeInTheDocument();
+    expect(screen.getByText("Where does the expected range come from?")).toBeInTheDocument();
   });
 
   it("shows Boyer-Moore vote changes and the final candidate", async () => {
