@@ -41,4 +41,15 @@ describe("problem-specific study guides", () => {
     expect(guide.solutionCode).toContain(solutionText);
     expect(guide.solutionNotes?.length).toBeGreaterThan(0);
   });
+
+  it("teaches Missing Number with a two-loop solution before XOR", () => {
+    const guide = getStudyGuide(question("missing-number", "Missing Number"));
+
+    expect(guide.bruteForceCode).toContain(
+      "for (int candidate = 0; candidate <= nums.length; candidate++)",
+    );
+    expect(guide.bruteForceCode).toContain("for (int num : nums)");
+    expect(guide.bruteForceNotes?.join(" ")).toContain("O(n²)");
+    expect(guide.solutionCode).toContain("missing ^= i");
+  });
 });

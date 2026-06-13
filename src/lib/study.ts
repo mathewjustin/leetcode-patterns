@@ -10,6 +10,9 @@ export interface StudyGuide {
   bugPrompt: string;
   buggyCode: string;
   fixHints: string[];
+  bruteForceLanguage?: string;
+  bruteForceCode?: string;
+  bruteForceNotes?: string[];
   solutionLanguage?: string;
   solutionCode?: string;
   solutionNotes?: string[];
@@ -286,9 +289,9 @@ class Solution {
   },
   "missing-number": {
     pattern: "Bit Manipulation",
-    mentalModel: "Think of XOR as pair cancellation. Put one copy of every expected value from 0 through n together with one copy of every value actually present. Equal values cancel to zero, so the only unpaired value left is the missing number.",
+    mentalModel: "Start with the direct question: for every expected number from 0 through n, scan the array to see whether it exists. That two-loop solution makes the problem obvious. XOR then optimizes the repeated searching by cancelling every present value in one pass.",
     recognition: ["The array contains n distinct values chosen from the complete range 0 through n.", "Exactly one expected value has no matching copy in the array.", "You want O(n) time and O(1) extra space; XOR also avoids arithmetic overflow."],
-    plan: ["Remember the XOR rules: x ^ x = 0 and x ^ 0 = x.", "Use indices 0 through n - 1 as most of the expected range.", "Initialize missing to n to include the final expected value.", "For every position, XOR both its index and its array value into missing.", "Return the one value that could not cancel with a matching copy."],
+    plan: ["First picture the brute-force search: choose each candidate from 0 through n, then scan nums for that candidate.", "The first candidate not found in the inner loop is the missing number.", "To optimize, remember the XOR rules: x ^ x = 0 and x ^ 0 = x.", "Initialize missing to n, then XOR every index and array value into it.", "Return the one value that could not cancel with a matching copy."],
     edgeCases: ["Missing value is 0", "Missing value is n", "Single-element arrays [0] and [1]", "Input order is arbitrary", "Large n where a sum formula needs wider arithmetic"],
     complexityTarget: "O(n) time because the array is scanned once. O(1) extra space because XOR uses one accumulator.",
     bugPrompt: "This Java XOR sketch starts at 0 and only pairs array indices 0 through n - 1 with the values. It forgets to include the expected value n.",
@@ -305,6 +308,28 @@ class Solution {
   }
 }`,
     fixHints: ["The expected range has n + 1 values: 0 through n.", "Initialize the accumulator with nums.length, or XOR n separately.", "Test nums=[3, 0, 1], nums=[0, 1], and nums=[0]."],
+    bruteForceLanguage: "Java",
+    bruteForceCode: `class Solution {
+  public int missingNumber(int[] nums) {
+    for (int candidate = 0; candidate <= nums.length; candidate++) {
+      boolean found = false;
+
+      for (int num : nums) {
+        if (num == candidate) {
+          found = true;
+          break;
+        }
+      }
+
+      if (!found) {
+        return candidate;
+      }
+    }
+
+    return -1;
+  }
+}`,
+    bruteForceNotes: ["The outer loop tries every number that should exist: 0 through n.", "The inner loop searches the array for the current candidate.", "If the inner loop finishes without finding the candidate, that candidate is the answer.", "This is easy to reason about, but it can scan n array values for each of n + 1 candidates, so time is O(n²). Space is O(1)."],
     solutionLanguage: "Java",
     solutionCode: `class Solution {
   public int missingNumber(int[] nums) {

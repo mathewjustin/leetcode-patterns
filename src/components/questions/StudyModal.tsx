@@ -13,6 +13,7 @@ interface StudyModalProps {
 
 export default function StudyModal({ question, onClose }: StudyModalProps) {
   const guide = getStudyGuide(question);
+  const [showBruteForce, setShowBruteForce] = useState(false);
   const [showSolution, setShowSolution] = useState(false);
 
   return (
@@ -94,6 +95,37 @@ export default function StudyModal({ question, onClose }: StudyModalProps) {
               </div>
 
               <StudyList title="Fix Hints" items={guide.fixHints} />
+              {guide.bruteForceCode && (
+                <div className="rounded-md border border-sky-200 bg-sky-50 p-3 dark:border-sky-900 dark:bg-sky-950/25">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="flex items-center gap-2 text-sm font-semibold text-sky-950 dark:text-sky-100">
+                      <Code2 className="h-4 w-4" />
+                      Brute Force First
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setShowBruteForce((current) => !current)}
+                      className="rounded-md border border-sky-300 bg-white px-2.5 py-1.5 text-xs font-medium text-sky-800 hover:bg-sky-100 dark:border-sky-800 dark:bg-zinc-950 dark:text-sky-100 dark:hover:bg-sky-950"
+                    >
+                      {showBruteForce ? "Hide two-loop solution" : "Show two-loop solution"}
+                    </button>
+                  </div>
+
+                  {showBruteForce && (
+                    <div className="mt-3 space-y-3">
+                      <div className="text-xs font-semibold uppercase text-sky-800 dark:text-sky-200">
+                        {guide.bruteForceLanguage ?? "Code"}
+                      </div>
+                      <pre className="overflow-x-auto rounded-md bg-zinc-950 p-3 text-xs leading-5 text-zinc-100">
+                        <code>{guide.bruteForceCode}</code>
+                      </pre>
+                      {guide.bruteForceNotes && (
+                        <StudyList title="How The Two Loops Work" items={guide.bruteForceNotes} />
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
               {guide.solutionCode && (
                 <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900 dark:bg-emerald-950/25">
                   <div className="flex flex-wrap items-center justify-between gap-2">
