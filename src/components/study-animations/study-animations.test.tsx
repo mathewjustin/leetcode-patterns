@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import FindDisappearedNumbersAnimation from "./FindDisappearedNumbersAnimation";
 import MajorityElementAnimation from "./MajorityElementAnimation";
 import MissingNumberAnimation from "./MissingNumberAnimation";
+import ProductExceptSelfAnimation from "./ProductExceptSelfAnimation";
 
 async function advanceToEnd() {
   const user = userEvent.setup();
@@ -50,5 +51,21 @@ describe("dedicated study animations", () => {
     await advanceToEnd();
 
     expect(screen.getByText("Return candidate 2")).toBeInTheDocument();
+  });
+
+  it("builds product except self with prefix and suffix passes", async () => {
+    render(<ProductExceptSelfAnimation />);
+
+    expect(
+      screen.getByText("Product Except Self: Two Running Products"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("prefix pass")).toBeInTheDocument();
+    expect(screen.getByText("answer[i] = left[i] × right[i]")).toBeInTheDocument();
+    expect(screen.getByText(/Why not division/)).toBeInTheDocument();
+
+    await advanceToEnd();
+
+    expect(screen.getByText("suffix pass")).toBeInTheDocument();
+    expect(screen.getByText("Return [24, 12, 8, 6]")).toBeInTheDocument();
   });
 });

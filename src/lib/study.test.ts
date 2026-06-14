@@ -29,6 +29,12 @@ describe("problem-specific study guides", () => {
       "Boyer-Moore Voting",
       "count += num == candidate ? 1 : -1",
     ],
+    [
+      "product-of-array-except-self",
+      "Product of Array Except Self",
+      "Prefix and Suffix Products",
+      "output[i] *= suffix",
+    ],
   ])("provides a complete guide for %s", (slug, title, pattern, solutionText) => {
     const guide = getStudyGuide(question(slug, title));
 

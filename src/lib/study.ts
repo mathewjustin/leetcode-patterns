@@ -232,6 +232,78 @@ class Solution {
 }`,
     solutionNotes: ["Check the complement before inserting the current number.", "The map stores value -> index so the answer can return original positions.", "Time is O(n) because the loop visits each element once; space is O(n) because the map can grow with the input."],
   },
+  "product-of-array-except-self": {
+    pattern: "Prefix and Suffix Products",
+    mentalModel: "For each index, the answer is made from two independent pieces: the product of everything to its left and the product of everything to its right. Store left products in the output array, then sweep backward and multiply in a running right product.",
+    recognition: ["Each output position must exclude exactly its own input value.", "A direct solution repeats almost the same multiplication for every index.", "The prompt requires O(n) time and forbids division.", "Products to the left and right can be accumulated incrementally."],
+    plan: ["Create an output array and start prefix at 1, the multiplicative identity.", "Sweep left to right: write prefix into output[i], then multiply prefix by nums[i].", "Start suffix at 1.", "Sweep right to left: multiply output[i] by suffix, then multiply suffix by nums[i].", "Return output; each position now contains left product times right product without ever using nums[i]."],
+    edgeCases: ["One zero: only the zero position can have a nonzero answer", "Two or more zeros: every answer is zero", "Negative values and sign changes", "The minimum input length of two", "Using 1, not 0, to initialize running products"],
+    complexityTarget: "O(n) time for one forward pass and one backward pass. O(1) auxiliary space when the required output array is excluded.",
+    bugPrompt: "This Java sketch updates prefix before writing it to output. That includes nums[i] in its own answer, violating the except-self requirement.",
+    buggyCode: `class Solution {
+  public int[] productExceptSelf(int[] nums) {
+    int[] output = new int[nums.length];
+    int prefix = 1;
+
+    for (int i = 0; i < nums.length; i++) {
+      prefix *= nums[i];
+      output[i] = prefix;
+    }
+
+    int suffix = 1;
+    for (int i = nums.length - 1; i >= 0; i--) {
+      output[i] *= suffix;
+      suffix *= nums[i];
+    }
+
+    return output;
+  }
+}`,
+    fixHints: ["Write the current prefix into output[i] before multiplying by nums[i].", "At index i, prefix must represent indices strictly less than i.", "Trace nums=[1, 2, 3, 4]; after the prefix pass output should be [1, 1, 2, 6]."],
+    bruteForceLanguage: "Java",
+    bruteForceCode: `class Solution {
+  public int[] productExceptSelf(int[] nums) {
+    int[] output = new int[nums.length];
+
+    for (int i = 0; i < nums.length; i++) {
+      int product = 1;
+
+      for (int j = 0; j < nums.length; j++) {
+        if (i != j) {
+          product *= nums[j];
+        }
+      }
+
+      output[i] = product;
+    }
+
+    return output;
+  }
+}`,
+    bruteForceNotes: ["The outer loop chooses which index must be excluded.", "The inner loop multiplies every value whose index is different from i.", "Starting product at 1 is essential because 1 does not change multiplication.", "This directly matches the problem statement, but it performs roughly n multiplications for each of n output positions: O(n²) time and O(1) auxiliary space."],
+    solutionLanguage: "Java",
+    solutionCode: `class Solution {
+  public int[] productExceptSelf(int[] nums) {
+    int[] output = new int[nums.length];
+    int prefix = 1;
+
+    for (int i = 0; i < nums.length; i++) {
+      output[i] = prefix;
+      prefix *= nums[i];
+    }
+
+    int suffix = 1;
+
+    for (int i = nums.length - 1; i >= 0; i--) {
+      output[i] *= suffix;
+      suffix *= nums[i];
+    }
+
+    return output;
+  }
+}`,
+    solutionNotes: ["During the forward pass, output[i] contains the product of all values strictly left of i.", "During the backward pass, suffix contains the product of all values strictly right of i.", "Multiplying those pieces gives every value except nums[i].", "Because there is no division, zeros need no special branching: the running products naturally produce the correct result.", "The output array doubles as prefix storage, leaving only prefix and suffix as auxiliary variables."],
+  },
   "find-all-numbers-disappeared-in-an-array": {
     pattern: "In-Place Marking",
     mentalModel: "Every value is between 1 and n, so value x owns index x - 1. Mark that index negative to record that x appeared; indices that remain positive identify the missing values.",
