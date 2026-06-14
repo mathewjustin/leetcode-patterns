@@ -99,6 +99,19 @@ describe("reminders", () => {
 });
 
 describe("personal tips", () => {
+  it("includes the XOR cancellation guide as a built-in tip", () => {
+    expect(STARTER_TIPS).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "xor-cancellation-pattern",
+          category: "Bit Manipulation",
+          content: expect.stringContaining("x ^ x = 0"),
+          code: expect.stringContaining("answer ^= value"),
+        }),
+      ]),
+    );
+  });
+
   it("returns an empty collection when nothing is stored", () => {
     expect(loadPersonalTips()).toEqual([]);
   });

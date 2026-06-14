@@ -43,6 +43,30 @@ right = foundIndex - 1;`,
     createdAt: "2026-06-09",
     updatedAt: "2026-06-09",
   },
+  {
+    id: "xor-cancellation-pattern",
+    title: "Use XOR when equal values should cancel",
+    category: "Bit Manipulation",
+    content:
+      "Think of XOR as a parity bucket: adding the same value twice removes it because x ^ x = 0, while x ^ 0 = x. Reach for it when pairs should disappear and exactly one value must survive, such as Single Number or Missing Number. It also helps compare bit differences, find two odd-occurring values by splitting on a differing bit, build answers bit by bit in Maximum XOR, and implement addition without + using XOR for sum bits and AND plus a left shift for carries. Order does not matter because XOR is associative and commutative. Do not use one XOR bucket when you must recover several unrelated missing values: it preserves only their combined XOR, not each identity.",
+    code: `// Identities
+x ^ x = 0        // equal values cancel
+x ^ 0 = x        // zero changes nothing
+a ^ b ^ a = b    // order does not matter
+
+// Classic shape: every value appears twice except one
+int answer = 0;
+for (int value : nums) {
+  answer ^= value;
+}
+
+// Good signals:
+// - exactly one unpaired or missing value
+// - every other value occurs an even number of times
+// - compare/toggle individual bits or track odd parity`,
+    createdAt: "2026-06-14",
+    updatedAt: "2026-06-14",
+  },
 ];
 
 // Slugs from the old CRA version, ordered by old 0-based id

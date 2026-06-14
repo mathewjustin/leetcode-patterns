@@ -13,7 +13,7 @@ describe("TipsView", () => {
     localStorage.clear();
   });
 
-  it("shows the two starter traversal tips", () => {
+  it("shows the built-in learning tips", () => {
     render(<TipsView />);
 
     expect(
@@ -22,6 +22,10 @@ describe("TipsView", () => {
     expect(
       screen.getByText("Move the boundary past elements already searched"),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText("Use XOR when equal values should cancel"),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/one XOR bucket/)).toBeInTheDocument();
   });
 
   it("adds and persists a personal tip", async () => {
@@ -62,6 +66,11 @@ describe("TipsView", () => {
     expect(
       screen.queryByRole("button", {
         name: "Delete Use pass parity to alternate traversal direction",
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", {
+        name: "Edit Use XOR when equal values should cancel",
       }),
     ).not.toBeInTheDocument();
   });
