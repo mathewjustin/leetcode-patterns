@@ -57,15 +57,15 @@ describe("dedicated study animations", () => {
     render(<ProductExceptSelfAnimation />);
 
     expect(
-      screen.getByText("Product Except Self: Two Running Products"),
+      screen.getByText("Product Except Self: Meet in the Middle"),
     ).toBeInTheDocument();
-    expect(screen.getByText("prefix pass")).toBeInTheDocument();
-    expect(screen.getByText("answer[i] = left[i] × right[i]")).toBeInTheDocument();
-    expect(screen.getByText(/Why not division/)).toBeInTheDocument();
+    expect(screen.getByText("1. Collect left products")).toBeInTheDocument();
+    expect(screen.getByText("exclude self")).toBeInTheDocument();
+    expect(screen.getByText(/Write first, multiply second/)).toBeInTheDocument();
 
     await advanceToEnd();
 
-    expect(screen.getByText("suffix pass")).toBeInTheDocument();
-    expect(screen.getByText("Return [24, 12, 8, 6]")).toBeInTheDocument();
+    expect(screen.getByText("Left and right snap together")).toBeInTheDocument();
+    expect(screen.getByText("[-60, 120, -40, -30, -24]")).toBeInTheDocument();
   });
 });
