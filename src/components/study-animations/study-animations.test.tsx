@@ -29,18 +29,16 @@ describe("dedicated study animations", () => {
   it("shows XOR cancellation and the missing number", async () => {
     render(<MissingNumberAnimation />);
 
-    expect(screen.getByText("Missing Number: Why XOR Works")).toBeInTheDocument();
-    expect(screen.getByText("What is bitwise XOR (^), exactly?")).toBeInTheDocument();
-    expect(screen.getByText("Other Ways To Solve It")).toBeInTheDocument();
-    expect(screen.getByText("Sum formula")).toBeInTheDocument();
-    expect(screen.getByText("The same lists in binary")).toBeInTheDocument();
+    expect(screen.getByText("Missing Number: The XOR Bucket")).toBeInTheDocument();
+    expect(screen.getByText("Shuffled drop order")).toBeInTheDocument();
+    expect(screen.getByText("XOR bucket")).toBeInTheDocument();
+    expect(screen.getByText("x ^ x = 0")).toBeInTheDocument();
 
     await advanceToEnd();
 
-    expect(screen.getByText("The unpaired value is 2")).toBeInTheDocument();
-    expect(screen.getByText("Where does the expected range come from?")).toBeInTheDocument();
-    expect(screen.getByText("Binary accumulator trace")).toBeInTheDocument();
-    expect(screen.getByText("01 ^ 10 ^ 01")).toBeInTheDocument();
+    expect(screen.getByText("The value left in the bucket is 2")).toBeInTheDocument();
+    expect(screen.getByText("Why one loop creates the same bucket")).toBeInTheDocument();
+    expect(screen.getByText(/missing \^= nums\[i\]/)).toBeInTheDocument();
   });
 
   it("shows Boyer-Moore vote changes and the final candidate", async () => {
