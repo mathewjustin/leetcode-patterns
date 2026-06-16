@@ -2,15 +2,16 @@
 
 import { useState, useEffect, useSyncExternalStore, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import { TableProperties, Map, Trophy, Lightbulb } from "lucide-react";
+import { TableProperties, Map, Trophy, Lightbulb, Network } from "lucide-react";
 import QuestionsTable from "@/components/questions/QuestionsTable";
 import RoadmapView from "@/components/roadmaps/RoadmapView";
+import SystemDesignTimeline from "@/components/roadmaps/SystemDesignTimeline";
 import TipsView from "@/components/tips/TipsView";
 import { Question } from "@/types/question";
 import { beginnerRoadmap, experiencedRoadmap } from "@/data/roadmaps";
 import { trackEvent } from "@/lib/analytics";
 
-type View = "table" | "beginner" | "experienced" | "tips";
+type View = "table" | "beginner" | "experienced" | "system-design" | "tips";
 
 const VIEW_KEY = "leetcode-patterns-view";
 
@@ -18,6 +19,7 @@ const views: { id: View; label: string; icon: typeof TableProperties; descriptio
   { id: "table", label: "All Questions", icon: TableProperties, description: "Browse all questions with filters" },
   { id: "beginner", label: "Beginner Roadmap", icon: Map, description: "Structured path for newcomers" },
   { id: "experienced", label: "Experienced Roadmap", icon: Trophy, description: "Must-know problems for experienced engineers" },
+  { id: "system-design", label: "System Design", icon: Network, description: "Timeline that keeps going" },
   { id: "tips", label: "My Tips", icon: Lightbulb, description: "Personal programming lessons" },
 ];
 
@@ -131,6 +133,7 @@ export default function ViewSwitcher({
         {displayedView === "experienced" && (
           <RoadmapView roadmap={experiencedRoadmap} questions={questions} />
         )}
+        {displayedView === "system-design" && <SystemDesignTimeline />}
         {displayedView === "tips" && <TipsView />}
       </div>
     </>
