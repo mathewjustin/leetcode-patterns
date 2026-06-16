@@ -35,23 +35,3 @@ body {
     transform: translateY(0);
   }
 }
-
-@keyframes endlessTimeline {
-  from {
-    background-position: 0 0;
-  }
-  to {
-    background-position: 2rem 0;
-  }
-}
-
-.system-design-endless-line {
-  background-image: repeating-linear-gradient(
-    90deg,
-    currentColor 0,
-    currentColor 0.75rem,
-    transparent 0.75rem,
-    transparent 1.5rem
-  );
-  animation: endlessTimeline 1.1s linear infinite;
-}

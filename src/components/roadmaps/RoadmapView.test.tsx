@@ -69,12 +69,11 @@ describe("ViewSwitcher", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders all five view tabs", () => {
+  it("renders all four view tabs", () => {
     render(<ViewSwitcher questions={testData} updatedDate="2025-01-01" />);
     expect(screen.getByText("All Questions")).toBeInTheDocument();
     expect(screen.getByText("Beginner Roadmap")).toBeInTheDocument();
     expect(screen.getByText("Experienced Roadmap")).toBeInTheDocument();
-    expect(screen.getByText("System Design")).toBeInTheDocument();
     expect(screen.getByText("My Tips")).toBeInTheDocument();
   });
 
@@ -100,15 +99,6 @@ describe("ViewSwitcher", () => {
     expect(mockTrackEvent).toHaveBeenCalledWith("switch_view", { view: "experienced" });
   });
 
-  it("switches to system design roadmap view", async () => {
-    const user = userEvent.setup();
-    render(<ViewSwitcher questions={testData} updatedDate="2025-01-01" />);
-    await user.click(screen.getByText("System Design"));
-    expect(await screen.findByText("System Design Roadmap")).toBeInTheDocument();
-    expect(screen.getByText("Repeat forever")).toBeInTheDocument();
-    expect(mockTrackEvent).toHaveBeenCalledWith("switch_view", { view: "system-design" });
-  });
-
   it("persists view selection to localStorage", async () => {
     const user = userEvent.setup();
     render(<ViewSwitcher questions={testData} updatedDate="2025-01-01" />);
@@ -121,13 +111,6 @@ describe("ViewSwitcher", () => {
     render(<ViewSwitcher questions={testData} updatedDate="2025-01-01" />);
     await user.click(screen.getByText("Experienced Roadmap"));
     expect(localStorage.getItem("leetcode-patterns-view")).toBe("experienced");
-  });
-
-  it("persists system design view to localStorage", async () => {
-    const user = userEvent.setup();
-    render(<ViewSwitcher questions={testData} updatedDate="2025-01-01" />);
-    await user.click(screen.getByText("System Design"));
-    expect(localStorage.getItem("leetcode-patterns-view")).toBe("system-design");
   });
 
   it("restores view selection from localStorage", () => {
@@ -146,13 +129,6 @@ describe("ViewSwitcher", () => {
     mockSearchParams.current = new URLSearchParams("view=experienced");
     render(<ViewSwitcher questions={testData} updatedDate="2025-01-01" />);
     expect(screen.getByText(/Originally shared on/)).toBeInTheDocument();
-  });
-
-  it("deep links to System Design via ?view=system-design", () => {
-    mockSearchParams.current = new URLSearchParams("view=system-design");
-    render(<ViewSwitcher questions={testData} updatedDate="2025-01-01" />);
-    expect(screen.getByText("System Design Roadmap")).toBeInTheDocument();
-    expect(screen.getByText("Never finished")).toBeInTheDocument();
   });
 
   it("deep links to My Tips via ?view=tips", () => {
