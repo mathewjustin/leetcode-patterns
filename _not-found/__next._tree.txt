@@ -1,3 +1,3 @@
 :HL["/leetcode-patterns/_next/static/chunks/0.od8d-3xk.yj.css","style"]
 :HL["/leetcode-patterns/_next/static/chunks/0y_sfjj1lg~80.css","style"]
-0:{"tree":{"name":"","param":null,"prefetchHints":16,"slots":{"children":{"name":"/_not-found","param":null,"prefetchHints":0,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}}}},"staleTime":300,"buildId":"S0m-vXaSzUl6Rpa5EcMhn"}
+0:{"tree":{"name":"","param":null,"prefetchHints":16,"slots":{"children":{"name":"/_not-found","param":null,"prefetchHints":0,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}}}},"staleTime":300,"buildId":"tuN8bOyExgzuOleo2qucR"}
