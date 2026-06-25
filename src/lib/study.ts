@@ -232,6 +232,110 @@ class Solution {
 }`,
     solutionNotes: ["Check the complement before inserting the current number.", "The map stores value -> index so the answer can return original positions.", "Time is O(n) because the loop visits each element once; space is O(n) because the map can grow with the input."],
   },
+  "group-anagrams": {
+    pattern: "Hash Table",
+    mentalModel: "Anagrams share the same letter inventory. Convert each word into a canonical key, then let a hash map collect every word with the same key.",
+    recognition: ["Words need to be grouped by equivalent letters.", "Order inside each word does not matter, but character counts do.", "You need all groups, not just a true or false answer."],
+    plan: ["Create a map from canonical key to list of words.", "For each word, build a key by sorting its characters or counting 26 letters.", "Append the original word to that key's bucket.", "Return all map values after every word is processed."],
+    edgeCases: ["Empty string", "Single-character strings", "Repeated letters like boo and bob", "Many words with the same key", "Case or alphabet assumptions if the prompt changes"],
+    complexityTarget: "With sorted keys, O(n k log k) time for n words of max length k, and O(nk) space for the grouped output and keys. With fixed lowercase counts, key building can be O(k).",
+    bugPrompt: "This Java sketch uses the raw word as the map key, so anagrams with different letter order never meet in the same bucket.",
+    buggyCode: `import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+class Solution {
+  public List<List<String>> groupAnagrams(String[] strs) {
+    Map<String, List<String>> groups = new HashMap<>();
+
+    for (String word : strs) {
+      groups.computeIfAbsent(word, key -> new ArrayList<>()).add(word);
+    }
+
+    return new ArrayList<>(groups.values());
+  }
+}`,
+    fixHints: ["Use a canonical key that all anagrams share.", "Sorting characters makes eat, tea, and ate all become aet.", "Test strs=[\"eat\", \"tea\", \"ate\", \"bat\"]."],
+    solutionLanguage: "Java",
+    solutionCode: `import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+class Solution {
+  public List<List<String>> groupAnagrams(String[] strs) {
+    Map<String, List<String>> groups = new HashMap<>();
+
+    for (String word : strs) {
+      char[] chars = word.toCharArray();
+      Arrays.sort(chars);
+      String key = new String(chars);
+
+      groups.computeIfAbsent(key, unused -> new ArrayList<>()).add(word);
+    }
+
+    return new ArrayList<>(groups.values());
+  }
+}`,
+    solutionNotes: ["The sorted key preserves character counts while removing order.", "The original word is stored in the bucket so the output is not the sorted key.", "Each word is processed once; sorting dominates the time for longer words."],
+  },
+  "encode-and-decode-strings": {
+    pattern: "Length-Prefix Encoding",
+    mentalModel: "Do not guess where a string ends. Write the length first, a delimiter second, and then exactly that many characters. Decoding becomes cursor arithmetic instead of delimiter hunting.",
+    recognition: ["A list of arbitrary strings must become one string and then round-trip back.", "Strings may contain normal delimiter characters.", "Empty strings must survive the encode/decode cycle."],
+    plan: ["Encode each string as length + '#' + string.", "Concatenate every encoded token.", "Decode with a cursor at the start of the stream.", "Read digits until '#', parse the length, then take exactly that many characters.", "Move the cursor to the next token and repeat."],
+    edgeCases: ["Empty strings", "Strings containing '#'", "Multi-digit lengths", "An empty input list", "Unicode or byte-length assumptions in other languages"],
+    complexityTarget: "O(total characters) time for both encode and decode. O(total characters) space for the encoded stream or decoded output.",
+    bugPrompt: "This Java sketch joins strings with '#'. It breaks when a string itself contains '#', and it can also lose trailing empty strings.",
+    buggyCode: `import java.util.Arrays;
+import java.util.List;
+
+public class Codec {
+  public String encode(List<String> strs) {
+    return String.join("#", strs);
+  }
+
+  public List<String> decode(String s) {
+    return Arrays.asList(s.split("#"));
+  }
+}`,
+    fixHints: ["A delimiter alone cannot distinguish separator characters from payload characters.", "Store each string's length before the payload.", "Test [\"love#you\", \"\"] and [\"\", \"abc\"]."],
+    solutionLanguage: "Java",
+    solutionCode: `import java.util.ArrayList;
+import java.util.List;
+
+public class Codec {
+  public String encode(List<String> strs) {
+    StringBuilder encoded = new StringBuilder();
+
+    for (String str : strs) {
+      encoded.append(str.length()).append('#').append(str);
+    }
+
+    return encoded.toString();
+  }
+
+  public List<String> decode(String s) {
+    List<String> result = new ArrayList<>();
+    int cursor = 0;
+
+    while (cursor < s.length()) {
+      int delimiter = s.indexOf('#', cursor);
+      int length = Integer.parseInt(s.substring(cursor, delimiter));
+      int start = delimiter + 1;
+      int end = start + length;
+
+      result.add(s.substring(start, end));
+      cursor = end;
+    }
+
+    return result;
+  }
+}`,
+    solutionNotes: ["The delimiter separates the length field from the payload; it is not used to find the payload's end.", "A zero length cleanly represents an empty string.", "The cursor only moves forward, so decoding is linear in the encoded string size."],
+  },
   "product-of-array-except-self": {
     pattern: "Prefix and Suffix Products",
     mentalModel: "For each index, the answer is made from two independent pieces: the product of everything to its left and the product of everything to its right. Store left products in the output array, then sweep backward and multiply in a running right product.",
@@ -303,6 +407,69 @@ class Solution {
   }
 }`,
     solutionNotes: ["During the forward pass, output[i] contains the product of all values strictly left of i.", "During the backward pass, suffix contains the product of all values strictly right of i.", "Multiplying those pieces gives every value except nums[i].", "Because there is no division, zeros need no special branching: the running products naturally produce the correct result.", "The output array doubles as prefix storage, leaving only prefix and suffix as auxiliary variables."],
+  },
+  "longest-consecutive-sequence": {
+    pattern: "Hash Set",
+    mentalModel: "Put every number in a set, then only count sequences from their first value. A number starts a sequence when num - 1 is missing.",
+    recognition: ["You need consecutive values, but the input is unsorted.", "Sorting would work, but the target is linear time.", "A brute force scan repeatedly asks whether the next number exists."],
+    plan: ["Insert every number into a set.", "For each unique number, skip it if num - 1 exists.", "When num - 1 is missing, count num, num + 1, num + 2 while they exist.", "Track the longest count seen.", "Return the best length."],
+    edgeCases: ["Empty array", "Duplicates", "Negative numbers", "Multiple separate sequences", "The longest sequence starts at the smallest or largest-looking input position"],
+    complexityTarget: "O(n) average time because each value is inserted once and counted from a sequence start. O(n) space for the hash set.",
+    bugPrompt: "This Java sketch counts forward from every number. It can revisit the same sequence many times and degrade toward O(n²).",
+    buggyCode: `import java.util.HashSet;
+import java.util.Set;
+
+class Solution {
+  public int longestConsecutive(int[] nums) {
+    Set<Integer> values = new HashSet<>();
+    for (int num : nums) values.add(num);
+
+    int best = 0;
+    for (int num : nums) {
+      int length = 0;
+      while (values.contains(num + length)) {
+        length++;
+      }
+      best = Math.max(best, length);
+    }
+
+    return best;
+  }
+}`,
+    fixHints: ["Only start counting when values does not contain num - 1.", "Iterate over the set to avoid duplicate work from duplicate input values.", "Test nums=[1, 2, 3, 4, 2, 3]; the broken version recounts the same chain."],
+    solutionLanguage: "Java",
+    solutionCode: `import java.util.HashSet;
+import java.util.Set;
+
+class Solution {
+  public int longestConsecutive(int[] nums) {
+    Set<Integer> values = new HashSet<>();
+    for (int num : nums) {
+      values.add(num);
+    }
+
+    int best = 0;
+
+    for (int num : values) {
+      if (values.contains(num - 1)) {
+        continue;
+      }
+
+      int current = num;
+      int length = 1;
+
+      while (values.contains(current + 1)) {
+        current++;
+        length++;
+      }
+
+      best = Math.max(best, length);
+    }
+
+    return best;
+  }
+}`,
+    solutionNotes: ["The num - 1 check guarantees each sequence is counted once, from its head.", "Duplicates disappear in the set, so they cannot inflate the answer.", "Hash lookups make membership checks average O(1), keeping the whole pass linear."],
   },
   "find-all-numbers-disappeared-in-an-array": {
     pattern: "In-Place Marking",

@@ -35,6 +35,24 @@ describe("problem-specific study guides", () => {
       "Prefix and Suffix Products",
       "output[i] *= suffix",
     ],
+    [
+      "group-anagrams",
+      "Group Anagrams",
+      "Hash Table",
+      "Arrays.sort(chars)",
+    ],
+    [
+      "encode-and-decode-strings",
+      "Encode and Decode Strings",
+      "Length-Prefix Encoding",
+      "encoded.append(str.length())",
+    ],
+    [
+      "longest-consecutive-sequence",
+      "Longest Consecutive Sequence",
+      "Hash Set",
+      "values.contains(num - 1)",
+    ],
   ])("provides a complete guide for %s", (slug, title, pattern, solutionText) => {
     const guide = getStudyGuide(question(slug, title));
 

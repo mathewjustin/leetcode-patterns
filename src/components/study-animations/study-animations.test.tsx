@@ -1,7 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
+import EncodeDecodeStringsAnimation from "./EncodeDecodeStringsAnimation";
 import FindDisappearedNumbersAnimation from "./FindDisappearedNumbersAnimation";
+import GroupAnagramsAnimation from "./GroupAnagramsAnimation";
+import LongestConsecutiveSequenceAnimation from "./LongestConsecutiveSequenceAnimation";
 import MajorityElementAnimation from "./MajorityElementAnimation";
 import MissingNumberAnimation from "./MissingNumberAnimation";
 import ProductExceptSelfAnimation from "./ProductExceptSelfAnimation";
@@ -67,5 +70,44 @@ describe("dedicated study animations", () => {
 
     expect(screen.getByText("Left and right snap together")).toBeInTheDocument();
     expect(screen.getByText("[-60, 120, -40, -30, -24]")).toBeInTheDocument();
+  });
+
+  it("groups anagrams by a canonical sorted key", async () => {
+    render(<GroupAnagramsAnimation />);
+
+    expect(
+      screen.getByText("Group Anagrams: Build a Canonical Key"),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/sort\("eat"\) = "aet"/)).toBeInTheDocument();
+
+    await advanceToEnd();
+
+    expect(screen.getByText("abt")).toBeInTheDocument();
+  });
+
+  it("encodes and decodes strings with length prefixes", async () => {
+    render(<EncodeDecodeStringsAnimation />);
+
+    expect(
+      screen.getByText("Encode and Decode Strings: Length First"),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("4#lint").length).toBeGreaterThan(0);
+
+    await advanceToEnd();
+
+    expect(screen.getByText(/"lint", "code", "love#you", ""/)).toBeInTheDocument();
+  });
+
+  it("counts longest consecutive sequences only from sequence starts", async () => {
+    render(<LongestConsecutiveSequenceAnimation />);
+
+    expect(
+      screen.getByText("Longest Consecutive Sequence: Start at Heads"),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/1 has no 0/)).toBeInTheDocument();
+
+    await advanceToEnd();
+
+    expect(screen.getByText("Return 4 for [1, 2, 3, 4]")).toBeInTheDocument();
   });
 });
