@@ -49,6 +49,8 @@ const fakeProfile = {
   avatarUrl: "https://example.com/avatar.png",
 };
 
+const storedGoogleUserKey = "leetcode-patterns.google-user";
+
 function TestConsumer() {
   const { user, signIn, signOut, syncNow } = useAuth();
   return (
@@ -74,6 +76,7 @@ describe("AuthProvider Google Drive sync", () => {
     mockConfigureGoogleDriveSync.mockClear();
     mockScheduleUpload.mockClear();
     mockTrackEvent.mockClear();
+    window.localStorage.clear();
   });
 
   afterEach(() => {
@@ -120,6 +123,66 @@ describe("AuthProvider Google Drive sync", () => {
 
     expect(await screen.findByText("signed-in:Test User")).toBeInTheDocument();
     expect(mockRequestGoogleAccessToken).toHaveBeenCalledWith("consent");
+  });
+
+  it("restores a previous Google session silently after refresh", async () => {
+    let resolveToken: (token: string) => void = () => {};
+    mockRequestGoogleAccessToken.mockReturnValue(new Promise((resolve) => {
+      resolveToken = resolve;
+    }));
+    window.localStorage.setItem(storedGoogleUserKey, JSON.stringify({
+      id: "google-user-1",
+      provider: "google",
+      name: "Cached User",
+      email: "cached@example.com",
+      avatarUrl: "https://example.com/cached.png",
+    }));
+
+    await act(async () => {
+      render(
+        <AuthProvider>
+          <TestConsumer />
+        </AuthProvider>,
+      );
+    });
+
+    expect(screen.getByText("signed-in:Cached User")).toBeInTheDocument();
+    expect(mockRequestGoogleAccessToken).toHaveBeenCalledWith("");
+    await act(async () => {
+      resolveToken("access-token");
+    });
+    expect(await screen.findByText("signed-in:Test User")).toBeInTheDocument();
+    expect(mockConfigureGoogleDriveSync).toHaveBeenCalledWith("access-token");
+    expect(mockDownloadAndMerge).toHaveBeenCalledWith();
+    expect(mockTrackEvent).not.toHaveBeenCalledWith("sign_in", { provider: "google" });
+  });
+
+  it("clears the cached Google session when silent refresh fails", async () => {
+    let rejectToken: (error: Error) => void = () => {};
+    mockRequestGoogleAccessToken.mockReturnValue(new Promise((_, reject) => {
+      rejectToken = reject;
+    }));
+    window.localStorage.setItem(storedGoogleUserKey, JSON.stringify({
+      id: "google-user-1",
+      provider: "google",
+      name: "Cached User",
+    }));
+
+    await act(async () => {
+      render(
+        <AuthProvider>
+          <TestConsumer />
+        </AuthProvider>,
+      );
+    });
+
+    expect(screen.getByText("signed-in:Cached User")).toBeInTheDocument();
+    await act(async () => {
+      rejectToken(new Error("interaction required"));
+    });
+    expect(await screen.findByText("signed-out")).toBeInTheDocument();
+    expect(mockConfigureGoogleDriveSync).toHaveBeenCalledWith(null);
+    expect(window.localStorage.getItem(storedGoogleUserKey)).toBeNull();
   });
 
   it("shows a local-only toast when Google sync is not configured", async () => {
@@ -178,6 +241,7 @@ describe("AuthProvider Google Drive sync", () => {
 
     expect(mockRevokeGoogleAccessToken).toHaveBeenCalledWith("access-token");
     expect(mockConfigureGoogleDriveSync).toHaveBeenCalledWith(null);
+    expect(window.localStorage.getItem(storedGoogleUserKey)).toBeNull();
     expect(screen.getByText("signed-out")).toBeInTheDocument();
   });
 });

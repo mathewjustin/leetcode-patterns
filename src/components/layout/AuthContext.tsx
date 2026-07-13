@@ -37,14 +37,17 @@ const AuthContext = createContext<AuthContextValue>({
   syncVersion: 0,
 });
 
+const STORED_GOOGLE_USER_KEY = "leetcode-patterns.google-user";
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AppUser | null>(null);
+  const [user, setUser] = useState<AppUser | null>(() => readStoredGoogleUser());
   const [loading, setLoading] = useState(false);
   const [syncVersion, setSyncVersion] = useState(0);
   const [toast, setToast] = useState<{ message: string; type: "error" | "success" } | null>(null);
   const [toastFading, setToastFading] = useState(false);
   const accessTokenRef = useRef<string | null>(null);
-  const hasSessionRef = useRef(false);
+  const restoredUserRef = useRef<AppUser | null>(user);
+  const hasSessionRef = useRef(Boolean(user));
 
   useEffect(() => {
     if (!toast) return;
@@ -65,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const nextUser = mapGoogleProfile(profile);
     setUser(nextUser);
+    storeGoogleUser(nextUser);
     setLoading(false);
 
     const changed = await downloadAndMerge();
@@ -78,6 +82,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     hasSessionRef.current = true;
   }, []);
+
+  useEffect(() => {
+    if (!isGoogleDriveSyncConfigured()) return;
+
+    const storedUser = restoredUserRef.current;
+    if (!storedUser) return;
+
+    let cancelled = false;
+
+    const restoreSession = async () => {
+      try {
+        const accessToken = await requestGoogleAccessToken("");
+        if (cancelled) return;
+        await completeGoogleSignIn(accessToken, { silent: true });
+      } catch {
+        if (cancelled) return;
+        accessTokenRef.current = null;
+        configureGoogleDriveSync(null);
+        setUser(null);
+        hasSessionRef.current = false;
+        clearStoredGoogleUser();
+      }
+    };
+
+    restoreSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [completeGoogleSignIn]);
 
   useEffect(() => {
     const flush = () => flushPendingUpload();
@@ -113,6 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     accessTokenRef.current = null;
     configureGoogleDriveSync(null);
     setUser(null);
+    clearStoredGoogleUser();
     hasSessionRef.current = false;
     if (accessToken) await revokeGoogleAccessToken(accessToken);
     trackEvent("sign_out", { provider: "google" });
@@ -153,4 +188,34 @@ function mapGoogleProfile(profile: GoogleProfile): AppUser {
     email: profile.email,
     avatarUrl: profile.avatarUrl,
   };
+}
+
+function readStoredGoogleUser(): AppUser | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.localStorage.getItem(STORED_GOOGLE_USER_KEY);
+    if (!raw) return null;
+    const user = JSON.parse(raw) as AppUser;
+    if (!user || user.provider !== "google" || !user.id || !user.name) return null;
+    return user;
+  } catch {
+    return null;
+  }
+}
+
+function storeGoogleUser(user: AppUser): void {
+  try {
+    window.localStorage.setItem(STORED_GOOGLE_USER_KEY, JSON.stringify(user));
+  } catch {
+    // Progress still works without persisted auth UI state.
+  }
+}
+
+function clearStoredGoogleUser(): void {
+  try {
+    window.localStorage.removeItem(STORED_GOOGLE_USER_KEY);
+  } catch {
+    // Ignore storage failures; sign-out should still clear in-memory auth.
+  }
 }
