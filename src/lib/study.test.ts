@@ -53,6 +53,12 @@ describe("problem-specific study guides", () => {
       "Hash Set",
       "values.contains(num - 1)",
     ],
+    [
+      "add-two-numbers",
+      "Add Two Numbers",
+      "Linked List + Carry",
+      "while (l1 != null || l2 != null || carry != 0)",
+    ],
   ])("provides a complete guide for %s", (slug, title, pattern, solutionText) => {
     const guide = getStudyGuide(question(slug, title));
 

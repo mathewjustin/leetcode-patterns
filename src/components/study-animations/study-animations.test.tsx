@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
+import AddTwoNumbersAnimation from "./AddTwoNumbersAnimation";
 import EncodeDecodeStringsAnimation from "./EncodeDecodeStringsAnimation";
 import FindDisappearedNumbersAnimation from "./FindDisappearedNumbersAnimation";
 import GroupAnagramsAnimation from "./GroupAnagramsAnimation";
@@ -19,6 +20,21 @@ async function advanceToEnd() {
 }
 
 describe("dedicated study animations", () => {
+  it("shows linked-list digit addition with carry propagation", async () => {
+    render(<AddTwoNumbersAnimation />);
+
+    expect(
+      screen.getByText("Add Two Numbers: Carry Moves With the Pointers"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("9 + 1 + carry 0 = 10")).toBeInTheDocument();
+    expect(screen.getByText("Pointer Invariant")).toBeInTheDocument();
+
+    await advanceToEnd();
+
+    expect(screen.getByText("final linked list")).toBeInTheDocument();
+    expect(screen.getByText("[0, 0, 0, 1]")).toBeInTheDocument();
+  });
+
   it("shows in-place marking and the disappeared values", async () => {
     render(<FindDisappearedNumbersAnimation />);
 

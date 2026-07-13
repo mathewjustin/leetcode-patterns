@@ -10,9 +10,13 @@ export interface StudyGuide {
   bugPrompt: string;
   buggyCode: string;
   fixHints: string[];
+  bruteForceTitle?: string;
+  bruteForceToggleLabel?: string;
+  bruteForceNotesTitle?: string;
   bruteForceLanguage?: string;
   bruteForceCode?: string;
   bruteForceNotes?: string[];
+  solutionTitle?: string;
   solutionLanguage?: string;
   solutionCode?: string;
   solutionNotes?: string[];
@@ -231,6 +235,105 @@ class Solution {
   }
 }`,
     solutionNotes: ["Check the complement before inserting the current number.", "The map stores value -> index so the answer can return original positions.", "Time is O(n) because the loop visits each element once; space is O(n) because the map can grow with the input."],
+  },
+  "add-two-numbers": {
+    pattern: "Linked List + Carry",
+    mentalModel: "The lists store digits in reverse order, so the head is the ones place. Walk both lists like column addition from right to left on paper: add current digits plus carry, write sum % 10, carry Math.floor(sum / 10), then move both pointers forward.",
+    recognition: ["Two linked lists represent numbers digit by digit.", "Digits are reversed, so the natural traversal order is already the addition order.", "The result must also be a linked list, so append one node per computed digit.", "The lists can have different lengths, and carry can outlive both lists."],
+    plan: ["Create a dummy head and a tail pointer for the result list.", "Initialize carry to 0.", "Loop while l1, l2, or carry exists.", "Read x from l1 or 0 when l1 is null; read y from l2 or 0 when l2 is null.", "Compute sum = x + y + carry, append sum % 10, update carry = sum / 10, and advance any non-null input pointers.", "Return dummy.next."],
+    edgeCases: ["Different length lists", "Final carry creates an extra node, like 999 + 1", "One list is already null", "Multiple carry steps in a row", "Input [0] plus [0]"],
+    complexityTarget: "O(max(m, n)) time because each input node is visited once. O(max(m, n)) space for the returned linked list; auxiliary pointer space is O(1).",
+    bugPrompt: "This Java sketch loops only while both lists have nodes. It drops the remaining digits from the longer list and loses a final carry.",
+    buggyCode: `class Solution {
+  public ListNode addTwoNumbers(ListNode l1, ListNode l2) {
+    ListNode dummy = new ListNode(0);
+    ListNode tail = dummy;
+    int carry = 0;
+
+    while (l1 != null && l2 != null) {
+      int sum = l1.val + l2.val + carry;
+      carry = sum / 10;
+      tail.next = new ListNode(sum % 10);
+      tail = tail.next;
+
+      l1 = l1.next;
+      l2 = l2.next;
+    }
+
+    return dummy.next;
+  }
+}`,
+    fixHints: ["The loop condition should continue while l1, l2, or carry exists.", "Use 0 for a missing node instead of stopping the whole addition.", "Test l1=[9,9,9], l2=[1]; the answer needs [0,0,0,1]."],
+    bruteForceTitle: "Naive Conversion",
+    bruteForceToggleLabel: "conversion approach",
+    bruteForceNotesTitle: "Why Conversion Breaks",
+    bruteForceLanguage: "Java",
+    bruteForceCode: `class Solution {
+  public ListNode addTwoNumbers(ListNode l1, ListNode l2) {
+    long first = 0;
+    long place = 1;
+
+    while (l1 != null) {
+      first += l1.val * place;
+      place *= 10;
+      l1 = l1.next;
+    }
+
+    long second = 0;
+    place = 1;
+    while (l2 != null) {
+      second += l2.val * place;
+      place *= 10;
+      l2 = l2.next;
+    }
+
+    long total = first + second;
+    ListNode dummy = new ListNode(0);
+    ListNode tail = dummy;
+
+    if (total == 0) {
+      return new ListNode(0);
+    }
+
+    while (total > 0) {
+      tail.next = new ListNode((int) (total % 10));
+      tail = tail.next;
+      total /= 10;
+    }
+
+    return dummy.next;
+  }
+}`,
+    bruteForceNotes: ["This version converts both lists into numbers, adds them, then converts back.", "It matches the mental model but can overflow normal integer types for long linked lists.", "The optimal linked-list solution avoids overflow by doing digit-by-digit addition directly."],
+    solutionTitle: "Digit-by-Digit Solution",
+    solutionLanguage: "Java",
+    solutionCode: `class Solution {
+  public ListNode addTwoNumbers(ListNode l1, ListNode l2) {
+    ListNode dummy = new ListNode(0);
+    ListNode tail = dummy;
+    int carry = 0;
+
+    while (l1 != null || l2 != null || carry != 0) {
+      int x = l1 != null ? l1.val : 0;
+      int y = l2 != null ? l2.val : 0;
+      int sum = x + y + carry;
+
+      carry = sum / 10;
+      tail.next = new ListNode(sum % 10);
+      tail = tail.next;
+
+      if (l1 != null) {
+        l1 = l1.next;
+      }
+      if (l2 != null) {
+        l2 = l2.next;
+      }
+    }
+
+    return dummy.next;
+  }
+}`,
+    solutionNotes: ["The dummy node removes special handling for the first result node.", "The loop condition includes carry so a final carry becomes its own node.", "Missing input nodes contribute 0, which makes uneven lengths easy.", "The algorithm never converts the whole list into an integer, so it works for very large inputs."],
   },
   "group-anagrams": {
     pattern: "Hash Table",

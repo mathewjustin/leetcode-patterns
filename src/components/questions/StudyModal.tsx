@@ -100,14 +100,16 @@ export default function StudyModal({ question, onClose }: StudyModalProps) {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <h3 className="flex items-center gap-2 text-sm font-semibold text-sky-950 dark:text-sky-100">
                       <Code2 className="h-4 w-4" />
-                      Brute Force First
+                      {guide.bruteForceTitle ?? "Brute Force First"}
                     </h3>
                     <button
                       type="button"
                       onClick={() => setShowBruteForce((current) => !current)}
                       className="rounded-md border border-sky-300 bg-white px-2.5 py-1.5 text-xs font-medium text-sky-800 hover:bg-sky-100 dark:border-sky-800 dark:bg-zinc-950 dark:text-sky-100 dark:hover:bg-sky-950"
                     >
-                      {showBruteForce ? "Hide two-loop solution" : "Show two-loop solution"}
+                      {showBruteForce
+                        ? `Hide ${guide.bruteForceToggleLabel ?? "two-loop solution"}`
+                        : `Show ${guide.bruteForceToggleLabel ?? "two-loop solution"}`}
                     </button>
                   </div>
 
@@ -120,7 +122,10 @@ export default function StudyModal({ question, onClose }: StudyModalProps) {
                         <code>{guide.bruteForceCode}</code>
                       </pre>
                       {guide.bruteForceNotes && (
-                        <StudyList title="How The Two Loops Work" items={guide.bruteForceNotes} />
+                        <StudyList
+                          title={guide.bruteForceNotesTitle ?? "How The Two Loops Work"}
+                          items={guide.bruteForceNotes}
+                        />
                       )}
                     </div>
                   )}
@@ -131,7 +136,7 @@ export default function StudyModal({ question, onClose }: StudyModalProps) {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <h3 className="flex items-center gap-2 text-sm font-semibold text-emerald-950 dark:text-emerald-100">
                       <Code2 className="h-4 w-4" />
-                      Solution
+                      {guide.solutionTitle ?? "Solution"}
                     </h3>
                     <button
                       type="button"

@@ -1,4 +1,5 @@
 import type { ComponentType } from "react";
+import AddTwoNumbersAnimation from "./AddTwoNumbersAnimation";
 import ContainsDuplicateAnimation from "./ContainsDuplicateAnimation";
 import EncodeDecodeStringsAnimation from "./EncodeDecodeStringsAnimation";
 import FindDisappearedNumbersAnimation from "./FindDisappearedNumbersAnimation";
@@ -12,6 +13,7 @@ import ValidAnagramAnimation from "./ValidAnagramAnimation";
 import ValidPalindromeAnimation from "./ValidPalindromeAnimation";
 
 export const studyAnimations: Record<string, ComponentType> = {
+  "add-two-numbers": AddTwoNumbersAnimation,
   "contains-duplicate": ContainsDuplicateAnimation,
   "encode-and-decode-strings": EncodeDecodeStringsAnimation,
   "find-all-numbers-disappeared-in-an-array": FindDisappearedNumbersAnimation,
